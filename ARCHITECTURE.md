@@ -143,6 +143,13 @@ Restricciones de integridad relevantes:
 - Una reposición y la falta que repone deben pertenecer al mismo alumno (FK compuesta).
 - Solo puede haber una asistencia normal por alumno y sesión; las reposiciones se identifican con `es_reposicion = 1`.
 
+### 4.4 Rutas configurables
+- `ICIA_DATA_DIR`: carpeta de datos; por defecto `data/` junto al proyecto o al ejecutable.
+- `ICIA_DB_PATH`: ruta de la base; por defecto `data/icia.db`. Para desarrollo se puede usar `data/icia_dev.db`.
+- `ICIA_PHOTOS_DIR`: carpeta de fotos; por defecto `data/photos/`.
+- `ICIA_HOST` e `ICIA_PORT`: servidor local; por defecto `127.0.0.1:8000`.
+- Cuando la app corre empaquetada con PyInstaller, `BASE_DIR` apunta a la carpeta del ejecutable para que los datos no queden dentro del bundle temporal.
+
 ---
 
 ## 5. Folios atómicos

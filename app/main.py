@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
-APP_NAME = "ICIA"
+from app.core.config import APP_NAME
 
 app = FastAPI(title=APP_NAME)
 
