@@ -22,9 +22,9 @@ Patrón: aplicación web local monolítica, offline-first, con SQLite como únic
 
 | Capa | Tecnología |
 | --- | --- |
-| Lenguaje | Python 3.11+ |
+| Lenguaje | Python 3.12 |
 | Servidor | FastAPI + Uvicorn en `127.0.0.1:8000` |
-| ORM | SQLAlchemy 2.0 (o SQLModel) |
+| ORM | SQLAlchemy 2.0+ |
 | Migraciones | Alembic |
 | Base de datos | SQLite en modo WAL |
 | Plantillas | Jinja2 + HTML5 semántico |

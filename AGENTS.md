@@ -63,7 +63,7 @@ Eres el Desarrollador Principal y Arquitecto de Software de este proyecto. Tu ob
 
 | Capa | Tecnología |
 | --- | --- |
-| Backend | Python 3.11+ / FastAPI / SQLAlchemy 2.0 (o SQLModel) / Alembic |
+| Backend | Python 3.12 / FastAPI / SQLAlchemy 2.0+ / Alembic |
 | Frontend | Jinja2 + HTML5 semántico + Tailwind local + Alpine.js o HTMX + Chart.js |
 | Base de datos | SQLite local (`icia.db`) en modo WAL |
 | Dinero | Enteros en centavos |

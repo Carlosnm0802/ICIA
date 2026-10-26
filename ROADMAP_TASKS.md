@@ -10,7 +10,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## FASE 1 — Esqueleto, base de datos y respaldo USB
 
-- [ ] **Tarea 1.1** — Crear estructura de directorios, `requirements.txt`, entorno virtual y archivo mínimo `app/main.py` con FastAPI en `127.0.0.1:8000`.
+- [x] **Tarea 1.1** — Crear estructura de directorios, `requirements.txt`, entorno virtual y archivo mínimo `app/main.py` con FastAPI en `127.0.0.1:8000`.
   - Entregable: servidor que responde una página básica; sin dependencias de internet en runtime.
 - [ ] **Tarea 1.2** — Implementar `app/core/config.py` con `APP_NAME = "ICIA"` y `app/core/database.py` con SQLite WAL (`journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout`).
   - Entregable: conexión reutilizable, PRAGMAs verificados y nombre de aplicación centralizado.
@@ -109,6 +109,6 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## Estado actual
 
-- Fase en curso: **ninguna (documentación inicial)**.
-- Siguiente tarea recomendada: **Tarea 1.1**.
+- Fase en curso: **Fase 1 — Esqueleto, base de datos y respaldo USB**.
+- Siguiente tarea recomendada: **Tarea 1.2**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
