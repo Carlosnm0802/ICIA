@@ -3,8 +3,9 @@ from pathlib import Path
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 
+import app.core.database as database
 from app.core.database import build_engine
 
 
@@ -49,4 +50,32 @@ def test_foreign_keys_are_enforced(tmp_path: Path) -> None:
                     "INSERT INTO child (parent_id) VALUES (999)"
                 )
     finally:
+        engine.dispose()
+
+
+class TrackingSession(Session):
+    closed = False
+
+    def close(self) -> None:
+        self.closed = True
+        super().close()
+
+
+def test_get_db_yields_and_closes_session(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = build_engine(tmp_path / "get_db.db")
+    factory = sessionmaker(bind=engine, class_=TrackingSession)
+    monkeypatch.setattr(database, "SessionLocal", factory)
+    generator = database.get_db()
+    try:
+        session = next(generator)
+        assert isinstance(session, TrackingSession)
+        assert session.execute(text("SELECT 1")).scalar() == 1
+        with pytest.raises(StopIteration):
+            next(generator)
+        assert session.closed
+    finally:
+        generator.close()
         engine.dispose()

@@ -63,6 +63,13 @@ def test_backup_creates_verified_copy_and_records_last_backup(
             actualizado_en="2020-01-01 00:00:00",
         )
     )
+    session.add(
+        Configuracion(
+            clave="ultimo_respaldo_ruta",
+            valor="/ruta/anterior.db",
+            actualizado_en="2020-01-01 00:00:00",
+        )
+    )
     session.commit()
 
     backup_dir = tmp_path / "backups"
@@ -93,6 +100,7 @@ def test_backup_creates_verified_copy_and_records_last_backup(
     assert last_backup.actualizado_en == "2026-10-27 12:34:56"
     assert last_backup_path is not None
     assert last_backup_path.valor == str(result.destination_path)
+    assert last_backup_path.actualizado_en == "2026-10-27 12:34:56"
 
 
 def test_backup_fails_when_source_does_not_exist(tmp_path: Path) -> None:
@@ -161,3 +169,46 @@ def test_backup_does_not_block_source_reads(
         assert reader.execute("SELECT COUNT(*) FROM sucursales").fetchone() == (1,)
     finally:
         reader.close()
+
+
+def test_backup_fails_when_source_equals_destination(tmp_path: Path) -> None:
+    source = tmp_path / BACKUP_NAME
+    command.upgrade(_config(source), "head")
+
+    with pytest.raises(BackupError, match="mismo"):
+        create_backup(
+            tmp_path,
+            source_path=source,
+            now=BACKUP_TIME,
+        )
+
+
+def test_failed_backup_does_not_leave_temp_files_or_update_last_backup(
+    session: Session,
+    tmp_path: Path,
+) -> None:
+    session.add(
+        Configuracion(
+            clave="ultimo_respaldo",
+            valor="2020-01-01 00:00:00",
+            actualizado_en="2020-01-01 00:00:00",
+        )
+    )
+    session.commit()
+
+    invalid_source = tmp_path / "invalid.db"
+    invalid_source.write_bytes(b"no es una base sqlite")
+    backup_dir = tmp_path / "backups"
+
+    with pytest.raises(BackupError):
+        backup_database(
+            session,
+            backup_dir,
+            source_path=invalid_source,
+            now=BACKUP_TIME,
+        )
+
+    assert list(backup_dir.iterdir()) == []
+    last_backup = session.get(Configuracion, "ultimo_respaldo")
+    assert last_backup is not None
+    assert last_backup.valor == "2020-01-01 00:00:00"

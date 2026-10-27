@@ -20,7 +20,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: datos reproducibles para pruebas.
 - [x] **Tarea 1.5** — Implementar `app/services/backup_service.py` con la SQLite Backup API hacia USB.
   - Entregable: copia consistente, nombre con timestamp y registro del último respaldo.
-- [ ] **Tarea 1.6** — Crear pruebas mínimas de base de datos, modelo y backup.
+- [x] **Tarea 1.6** — Crear pruebas mínimas de base de datos, modelo y backup.
   - Entregable: `pytest` verde.
 
 **Criterio de aceptación Fase 1:** base creada con datos semilla y backup que copia el `.db` sin bloquear lecturas, verificado por prueba automatizada.
@@ -109,6 +109,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## Estado actual
 
-- Fase en curso: **Fase 1 — Esqueleto, base de datos y respaldo USB**.
-- Siguiente tarea recomendada: **Tarea 1.6**.
+- Fase 1 completada.
+- Siguiente fase: **Fase 2 — Cobro Express y tickets térmicos**.
+- Siguiente tarea recomendada: **Tarea 2.1**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
