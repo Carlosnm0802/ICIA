@@ -49,16 +49,21 @@ ICIA/
 ├── DESIGN.md
 ├── schemas/
 │   └── database_schema.sql
+├── alembic.ini
+├── alembic/
+│   ├── env.py
+│   └── versions/
 ├── app/
 │   ├── main.py                  # Creación de la app FastAPI y registro de routers
 │   ├── core/
 │   │   ├── config.py            # APP_NAME="ICIA", rutas, puerto, USB, moneda
 │   │   ├── database.py          # Engine SQLite WAL y sesión por request
 │   │   └── security.py          # Hash de contraseña, sesión/cookie local
-│   ├── models/                  # Tablas SQLAlchemy/SQLModel
+│   ├── models/                  # Tablas SQLAlchemy
 │   │   ├── academic.py          # sucursales, grupos, bloques, sesiones, alumnos
 │   │   ├── billing.py           # pagos, folios, asistencias
-│   │   └── staff.py             # maestros, sesion_maestros
+│   │   ├── staff.py             # maestros, sesion_maestros
+│   │   └── system.py            # configuración
 │   ├── routers/                 # Endpoints FastAPI agrupados
 │   │   ├── auth.py
 │   │   ├── dashboard.py
@@ -74,7 +79,8 @@ ICIA/
 │   │   ├── folios.py            # Numeración consecutiva por sucursal
 │   │   ├── thermal_printer.py   # Ticket HTML y ESC/POS
 │   │   ├── backup_service.py    # SQLite Backup API hacia USB
-│   │   └── reports.py           # Consultas de dashboard, deudas y reposiciones
+│   │   ├── reports.py           # Consultas de dashboard, deudas y reposiciones
+│   │   └── seed.py              # Datos semilla reproducibles
 │   ├── templates/
 │   │   ├── layouts/base.html
 │   │   ├── auth/login.html
@@ -142,6 +148,13 @@ Restricciones de integridad relevantes:
 - Una asistencia y su pago deben pertenecer al mismo alumno (FK compuesta).
 - Una reposición y la falta que repone deben pertenecer al mismo alumno (FK compuesta).
 - Solo puede haber una asistencia normal por alumno y sesión; las reposiciones se identifican con `es_reposicion = 1`.
+
+### 4.4 Rutas configurables
+- `ICIA_DATA_DIR`: carpeta de datos; por defecto `data/` junto al proyecto o al ejecutable.
+- `ICIA_DB_PATH`: ruta de la base; por defecto `data/icia.db`. Para desarrollo se puede usar `data/icia_dev.db`.
+- `ICIA_PHOTOS_DIR`: carpeta de fotos; por defecto `data/photos/`.
+- `ICIA_HOST` e `ICIA_PORT`: servidor local; por defecto `127.0.0.1:8000`.
+- Cuando la app corre empaquetada con PyInstaller, `BASE_DIR` apunta a la carpeta del ejecutable para que los datos no queden dentro del bundle temporal.
 
 ---
 
@@ -217,7 +230,9 @@ La lógica de negocio no vive en routers ni en plantillas.
 - Usar la API de backup de SQLite (`sqlite3.Connection.backup`) hacia la ruta USB configurada.
 - La copia es consistente aunque el sistema esté en uso; no copiar el archivo con el explorador.
 - Nombre sugerido: `icia_YYYYMMDD_HHMMSS.db`.
-- Registrar la fecha del último respaldo exitoso y mostrar aviso si supera el umbral configurado.
+- Ruta configurable con `ICIA_BACKUP_DIR`; por defecto `data/backups` en desarrollo.
+- `backup_service.py` copia a un archivo temporal, verifica `PRAGMA integrity_check` y renombra al nombre final.
+- Registrar `ultimo_respaldo` y `ultimo_respaldo_ruta` en `configuracion` solo tras una copia verificada.
 - Restauración probada en una carpeta limpia con otra laptop.
 - Los respaldos contienen datos de menores: protegerlos y no enviarlos a la nube.
 
