@@ -16,7 +16,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: conexión reutilizable, PRAGMAs verificados y nombre de aplicación centralizado.
 - [x] **Tarea 1.3** — Implementar modelos en `app/models/` conforme a `schemas/database_schema.sql` y migración inicial con Alembic.
   - Entregable: base creada con las tablas, checks, llaves foráneas e índices del contrato.
-- [ ] **Tarea 1.4** — Crear script de datos semilla: 4 sucursales (TOT, OCO, PON, REF), maestros y 1 grupo de El Refugio con 35 alumnos y precio $140.
+- [x] **Tarea 1.4** — Crear script de datos semilla: 4 sucursales (TOT, OCO, PON, REF), maestros y 1 grupo de El Refugio con 35 alumnos y precio $140.
   - Entregable: datos reproducibles para pruebas.
 - [ ] **Tarea 1.5** — Implementar `app/services/backup_service.py` con la SQLite Backup API hacia USB.
   - Entregable: copia consistente, nombre con timestamp y registro del último respaldo.
@@ -110,5 +110,5 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase en curso: **Fase 1 — Esqueleto, base de datos y respaldo USB**.
-- Siguiente tarea recomendada: **Tarea 1.4**.
+- Siguiente tarea recomendada: **Tarea 1.5**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

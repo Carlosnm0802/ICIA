@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     """Upgrade schema."""
     op.create_table('alumnos',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
     sa.Column('fecha_nacimiento', sa.Text(), nullable=True),
     sa.Column('tutor', sa.Text(), nullable=True),
@@ -39,13 +39,13 @@ def upgrade() -> None:
     sqlite_autoincrement=True
     )
     op.create_table('configuracion',
-    sa.Column('clave', sa.Text(), nullable=True),
+    sa.Column('clave', sa.Text(), nullable=False),
     sa.Column('valor', sa.Text(), nullable=False),
     sa.Column('actualizado_en', sa.Text(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.PrimaryKeyConstraint('clave')
     )
     op.create_table('maestros',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
     sa.Column('fecha_nacimiento', sa.Text(), nullable=True),
     sa.Column('telefono', sa.Text(), nullable=True),
@@ -64,7 +64,7 @@ def upgrade() -> None:
     sqlite_autoincrement=True
     )
     op.create_table('sucursales',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
     sa.Column('direccion', sa.Text(), nullable=True),
     sa.Column('telefono', sa.Text(), nullable=True),
@@ -80,14 +80,14 @@ def upgrade() -> None:
     sqlite_autoincrement=True
     )
     op.create_table('folio_contadores',
-    sa.Column('sucursal_id', sa.Integer(), nullable=True),
+    sa.Column('sucursal_id', sa.Integer(), nullable=False),
     sa.Column('ultimo_consecutivo', sa.Integer(), server_default=sa.text('0'), nullable=False),
     sa.CheckConstraint('ultimo_consecutivo >= 0', name='ck_folio_contadores_consecutivo'),
     sa.ForeignKeyConstraint(['sucursal_id'], ['sucursales.id'], onupdate='CASCADE', ondelete='RESTRICT'),
     sa.PrimaryKeyConstraint('sucursal_id')
     )
     op.create_table('grupos',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sucursal_id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.Text(), nullable=False),
     sa.Column('dias_semana', sa.Text(), nullable=False),
@@ -111,7 +111,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_grupos_sucursal', ['sucursal_id'], unique=False)
 
     op.create_table('pagos',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('folio', sa.Text(), nullable=False),
     sa.Column('alumno_id', sa.Integer(), nullable=False),
     sa.Column('sucursal_id', sa.Integer(), nullable=False),
@@ -142,7 +142,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_pagos_sucursal_fecha', ['sucursal_id', 'fecha'], unique=False)
 
     op.create_table('bloques_grupo',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('grupo_id', sa.Integer(), nullable=False),
     sa.Column('materia', sa.Text(), nullable=False),
     sa.Column('orden', sa.Integer(), nullable=False),
@@ -162,7 +162,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_bloques_grupo_maestro', ['maestro_id'], unique=False)
 
     op.create_table('grupo_alumnos',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('grupo_id', sa.Integer(), nullable=False),
     sa.Column('alumno_id', sa.Integer(), nullable=False),
     sa.Column('fecha_alta', sa.Text(), server_default=sa.text('(CURRENT_DATE)'), nullable=False),
@@ -179,7 +179,7 @@ def upgrade() -> None:
         batch_op.create_index('ux_grupo_alumnos_activo', ['grupo_id', 'alumno_id'], unique=True, sqlite_where=sa.text('fecha_baja IS NULL'))
 
     op.create_table('sesiones',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('grupo_id', sa.Integer(), nullable=False),
     sa.Column('fecha', sa.Text(), nullable=False),
     sa.Column('estado', sa.Text(), server_default=sa.text("'programada'"), nullable=False),
@@ -198,7 +198,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_sesiones_grupo_fecha', ['grupo_id', 'fecha'], unique=False)
 
     op.create_table('asistencias',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sesion_id', sa.Integer(), nullable=False),
     sa.Column('alumno_id', sa.Integer(), nullable=False),
     sa.Column('estado', sa.Text(), nullable=False),
@@ -229,7 +229,7 @@ def upgrade() -> None:
         batch_op.create_index('ux_asistencias_sesion_alumno', ['sesion_id', 'alumno_id'], unique=True, sqlite_where=sa.text('es_reposicion = 0'))
 
     op.create_table('sesion_maestros',
-    sa.Column('id', sa.Integer(), nullable=True),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('sesion_id', sa.Integer(), nullable=False),
     sa.Column('maestro_id', sa.Integer(), nullable=False),
     sa.Column('pagado', sa.Integer(), server_default=sa.text('0'), nullable=False),

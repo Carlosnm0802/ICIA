@@ -79,7 +79,8 @@ ICIA/
 │   │   ├── folios.py            # Numeración consecutiva por sucursal
 │   │   ├── thermal_printer.py   # Ticket HTML y ESC/POS
 │   │   ├── backup_service.py    # SQLite Backup API hacia USB
-│   │   └── reports.py           # Consultas de dashboard, deudas y reposiciones
+│   │   ├── reports.py           # Consultas de dashboard, deudas y reposiciones
+│   │   └── seed.py              # Datos semilla reproducibles
 │   ├── templates/
 │   │   ├── layouts/base.html
 │   │   ├── auth/login.html

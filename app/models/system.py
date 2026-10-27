@@ -7,7 +7,7 @@ from app.core.database import Base
 class Configuracion(Base):
     __tablename__ = "configuracion"
 
-    clave: Mapped[str] = mapped_column(Text, primary_key=True, nullable=True)
+    clave: Mapped[str] = mapped_column(Text, primary_key=True)
     valor: Mapped[str] = mapped_column(Text, nullable=False)
     actualizado_en: Mapped[str] = mapped_column(
         Text,

@@ -40,7 +40,7 @@ class Sucursal(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
     direccion: Mapped[str | None] = mapped_column(Text)
     telefono: Mapped[str | None] = mapped_column(Text)
@@ -80,7 +80,7 @@ class Alumno(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
     fecha_nacimiento: Mapped[str | None] = mapped_column(Text)
     tutor: Mapped[str | None] = mapped_column(Text)
@@ -150,7 +150,7 @@ class Grupo(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sucursal_id: Mapped[int] = mapped_column(
         ForeignKey(
             "sucursales.id",
@@ -208,7 +208,7 @@ class BloqueGrupo(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     grupo_id: Mapped[int] = mapped_column(
         ForeignKey(
             "grupos.id",
@@ -251,7 +251,7 @@ class GrupoAlumno(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     grupo_id: Mapped[int] = mapped_column(
         ForeignKey(
             "grupos.id",
@@ -302,7 +302,7 @@ class Sesion(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     grupo_id: Mapped[int] = mapped_column(
         ForeignKey(
             "grupos.id",

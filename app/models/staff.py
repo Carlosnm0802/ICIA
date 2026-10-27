@@ -34,7 +34,7 @@ class Maestro(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
     fecha_nacimiento: Mapped[str | None] = mapped_column(Text)
     telefono: Mapped[str | None] = mapped_column(Text)
@@ -79,7 +79,7 @@ class SesionMaestro(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sesion_id: Mapped[int] = mapped_column(
         ForeignKey(
             "sesiones.id",

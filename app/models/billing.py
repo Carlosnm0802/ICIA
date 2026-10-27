@@ -36,7 +36,6 @@ class FolioContador(Base):
             ondelete="RESTRICT",
         ),
         primary_key=True,
-        nullable=True,
     )
     ultimo_consecutivo: Mapped[int] = mapped_column(
         Integer,
@@ -86,7 +85,7 @@ class Pago(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     folio: Mapped[str] = mapped_column(Text, nullable=False)
     alumno_id: Mapped[int] = mapped_column(
         ForeignKey(
@@ -194,7 +193,7 @@ class Asistencia(Base):
         {"sqlite_autoincrement": True},
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     sesion_id: Mapped[int] = mapped_column(
         ForeignKey(
             "sesiones.id",

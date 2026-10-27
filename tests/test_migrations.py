@@ -107,9 +107,18 @@ def _schema_signature(database_path: Path) -> dict[str, object]:
         return {
             "tables": tables,
             "columns": {
-                table: list(
-                    connection.execute(f'PRAGMA table_info("{table}")')
-                )
+                table: [
+                    (
+                        row[1],
+                        row[2],
+                        0 if row[5] else row[3],
+                        row[4],
+                        row[5],
+                    )
+                    for row in connection.execute(
+                        f'PRAGMA table_info("{table}")'
+                    )
+                ]
                 for table in tables
             },
             "foreign_keys": {
