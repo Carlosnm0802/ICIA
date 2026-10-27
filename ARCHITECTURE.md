@@ -230,7 +230,9 @@ La lógica de negocio no vive en routers ni en plantillas.
 - Usar la API de backup de SQLite (`sqlite3.Connection.backup`) hacia la ruta USB configurada.
 - La copia es consistente aunque el sistema esté en uso; no copiar el archivo con el explorador.
 - Nombre sugerido: `icia_YYYYMMDD_HHMMSS.db`.
-- Registrar la fecha del último respaldo exitoso y mostrar aviso si supera el umbral configurado.
+- Ruta configurable con `ICIA_BACKUP_DIR`; por defecto `data/backups` en desarrollo.
+- `backup_service.py` copia a un archivo temporal, verifica `PRAGMA integrity_check` y renombra al nombre final.
+- Registrar `ultimo_respaldo` y `ultimo_respaldo_ruta` en `configuracion` solo tras una copia verificada.
 - Restauración probada en una carpeta limpia con otra laptop.
 - Los respaldos contienen datos de menores: protegerlos y no enviarlos a la nube.
 

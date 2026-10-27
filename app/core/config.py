@@ -29,6 +29,11 @@ PHOTOS_DIR = (
     .expanduser()
     .resolve()
 )
+BACKUP_DIR = (
+    Path(os.getenv("ICIA_BACKUP_DIR", str(DATA_DIR / "backups")))
+    .expanduser()
+    .resolve()
+)
 
 
 def ensure_directories() -> None:
