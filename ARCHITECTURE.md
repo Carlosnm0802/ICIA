@@ -49,16 +49,21 @@ ICIA/
 ├── DESIGN.md
 ├── schemas/
 │   └── database_schema.sql
+├── alembic.ini
+├── alembic/
+│   ├── env.py
+│   └── versions/
 ├── app/
 │   ├── main.py                  # Creación de la app FastAPI y registro de routers
 │   ├── core/
 │   │   ├── config.py            # APP_NAME="ICIA", rutas, puerto, USB, moneda
 │   │   ├── database.py          # Engine SQLite WAL y sesión por request
 │   │   └── security.py          # Hash de contraseña, sesión/cookie local
-│   ├── models/                  # Tablas SQLAlchemy/SQLModel
+│   ├── models/                  # Tablas SQLAlchemy
 │   │   ├── academic.py          # sucursales, grupos, bloques, sesiones, alumnos
 │   │   ├── billing.py           # pagos, folios, asistencias
-│   │   └── staff.py             # maestros, sesion_maestros
+│   │   ├── staff.py             # maestros, sesion_maestros
+│   │   └── system.py            # configuración
 │   ├── routers/                 # Endpoints FastAPI agrupados
 │   │   ├── auth.py
 │   │   ├── dashboard.py

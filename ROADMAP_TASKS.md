@@ -14,7 +14,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: servidor que responde una página básica; sin dependencias de internet en runtime.
 - [x] **Tarea 1.2** — Implementar `app/core/config.py` con `APP_NAME = "ICIA"` y `app/core/database.py` con SQLite WAL (`journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout`).
   - Entregable: conexión reutilizable, PRAGMAs verificados y nombre de aplicación centralizado.
-- [ ] **Tarea 1.3** — Implementar modelos en `app/models/` conforme a `schemas/database_schema.sql` y migración inicial con Alembic.
+- [x] **Tarea 1.3** — Implementar modelos en `app/models/` conforme a `schemas/database_schema.sql` y migración inicial con Alembic.
   - Entregable: base creada con las tablas, checks, llaves foráneas e índices del contrato.
 - [ ] **Tarea 1.4** — Crear script de datos semilla: 4 sucursales (TOT, OCO, PON, REF), maestros y 1 grupo de El Refugio con 35 alumnos y precio $140.
   - Entregable: datos reproducibles para pruebas.
@@ -110,5 +110,5 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase en curso: **Fase 1 — Esqueleto, base de datos y respaldo USB**.
-- Siguiente tarea recomendada: **Tarea 1.3**.
+- Siguiente tarea recomendada: **Tarea 1.4**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
