@@ -1,0 +1,173 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Cobro Express · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Cobro Express</p>
+    <h1>
+      {% if grupo %}
+        {{ grupo.nombre }}
+      {% elif sucursal %}
+        {{ sucursal.nombre }}
+      {% else %}
+        Selecciona una sucursal
+      {% endif %}
+    </h1>
+    <p class="page-head__meta">
+      {% if grupo %}
+        {{ sucursal.nombre }} · {{ grupo.dias_semana }} · {{ grupo.hora_inicio }}–{{ grupo.hora_fin }} · {{ grupo.precio_centavos|mxn }} por sesión
+      {% elif sucursal %}
+        Elige el grupo del turno
+      {% else %}
+        Elige la sucursal donde se imparte la clase
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    {% if grupo %}
+      <a class="button button--ghost" href="/pos?sucursal_id={{ sucursal.id }}">Cambiar grupo</a>
+    {% endif %}
+    {% if sucursal %}
+      <a class="button button--ghost" href="/pos">Cambiar sucursal</a>
+    {% endif %}
+  </div>
+</header>
+
+{% if not sucursal %}
+  <section class="panel" aria-labelledby="sucursales-title">
+    <div class="section-head">
+      <h2 id="sucursales-title">Sucursales</h2>
+      <span class="section-head__hint">Selecciona dónde comienza el turno</span>
+    </div>
+    <div class="choice-grid">
+      {% for item in sucursales %}
+        <a class="choice-card" href="/pos?sucursal_id={{ item.id }}">
+          <span class="choice-card__prefix">{{ item.prefijo_folio }}</span>
+          <span class="choice-card__name">{{ item.nombre }}</span>
+          <span class="choice-card__hint">Abrir grupos</span>
+        </a>
+      {% else %}
+        <p class="empty-state">No hay sucursales activas.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% elif not grupo %}
+  <section class="panel" aria-labelledby="grupos-title">
+    <div class="section-head">
+      <h2 id="grupos-title">Grupos de {{ sucursal.nombre }}</h2>
+      <span class="section-head__hint">Selecciona el grupo del turno</span>
+    </div>
+    <div class="choice-grid">
+      {% for item in grupos %}
+        <a class="choice-card" href="/pos?sucursal_id={{ sucursal.id }}&grupo_id={{ item.id }}">
+          <span class="choice-card__name">{{ item.nombre }}</span>
+          <span class="choice-card__hint">{{ item.dias_semana }} · {{ item.hora_inicio }}–{{ item.hora_fin }}</span>
+          <span class="choice-card__price">{{ item.precio_centavos|mxn }} por sesión</span>
+        </a>
+      {% else %}
+        <p class="empty-state">No hay grupos activos en esta sucursal.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% else %}
+  <section class="panel panel--tight" aria-label="Sesiones del grupo">
+    <div class="session-bar">
+      <div>
+        <span class="label">Grupo</span>
+        <strong>{{ grupo.nombre }}</strong>
+      </div>
+      <div>
+        <span class="label">Horario</span>
+        <strong>{{ grupo.dias_semana }} · {{ grupo.hora_inicio }}–{{ grupo.hora_fin }}</strong>
+      </div>
+      <div>
+        <span class="label">Precio por sesión</span>
+        <strong>{{ grupo.precio_centavos|mxn }}</strong>
+      </div>
+    </div>
+
+    {% if sesiones %}
+      <nav class="session-switcher" aria-label="Cambiar de sesión">
+        {% for item in sesiones %}
+          <a
+            class="session-chip{% if sesion and item.id == sesion.id %} session-chip--active{% endif %}"
+            href="/pos?sucursal_id={{ sucursal.id }}&grupo_id={{ grupo.id }}&sesion_id={{ item.id }}"
+            {% if sesion and item.id == sesion.id %}aria-current="page"{% endif %}
+          >
+            <span class="session-chip__date">{{ item.fecha|fecha_corta }}</span>
+            <span class="session-chip__state">{{ item.estado|capitalize }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </section>
+
+  {% if not sesion %}
+    <section class="empty-panel" aria-labelledby="sin-sesion-title">
+      <span class="empty-panel__icon" aria-hidden="true">+</span>
+      <h2 id="sin-sesion-title">No hay sesión para hoy</h2>
+      <p>Abre la sesión de hoy para comenzar a registrar asistencia y cobros.</p>
+      <form method="post" action="/pos/sesiones?grupo_id={{ grupo.id }}">
+        <button class="button button--primary" type="submit">Abrir sesión de hoy</button>
+      </form>
+    </section>
+  {% else %}
+    <section class="session-summary" aria-label="Resumen de la sesión">
+      <div>
+        <span class="label">Sesión</span>
+        <strong>{{ sesion.fecha|fecha_larga }}</strong>
+      </div>
+      <div>
+        <span class="label">Estado</span>
+        <span class="pill pill--{{ sesion.estado }}">{{ sesion.estado|capitalize }}</span>
+      </div>
+      <div>
+        <span class="label">Alumnos</span>
+        <strong class="tabular">{{ resumen.total }}</strong>
+      </div>
+      <div>
+        <span class="label">Precio</span>
+        <strong class="tabular">{{ grupo.precio_centavos|mxn }}</strong>
+      </div>
+    </section>
+
+    {% if sesion.estado == "cancelada" %}
+      <div class="notice notice--danger" role="status">
+        Sesión cancelada: no genera faltas, cobros ni pago a maestros.
+      </div>
+    {% endif %}
+
+    <section class="panel" aria-labelledby="roster-title">
+      <div class="section-head section-head--roster">
+        <h2 id="roster-title">Lista del grupo</h2>
+        <div class="counter-row">
+          <span class="counter counter--pendiente">{{ resumen.pendientes }} pendientes</span>
+          <span class="counter counter--pagado">{{ resumen.pagados }} pagados</span>
+          <span class="counter counter--deuda">{{ resumen.deudas }} deudas</span>
+          <span class="counter counter--falto">{{ resumen.faltas }} faltas</span>
+        </div>
+      </div>
+
+      <div class="roster">
+        {% for alumno in alumnos %}
+          <article
+            class="student-card"
+            data-alumno-id="{{ alumno.id }}"
+            data-estado="{{ alumno.estado }}"
+          >
+            <span class="student-card__avatar" aria-hidden="true">{{ alumno.nombre[:1] }}</span>
+            <div class="student-card__body">
+              <h3>{{ alumno.nombre }}</h3>
+              <span class="pill pill--{{ alumno.estado }}">{{ alumno.etiqueta }}</span>
+            </div>
+          </article>
+        {% else %}
+          <p class="empty-state">Este grupo no tiene alumnos activos.</p>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+{% endif %}
+{% endblock %}
