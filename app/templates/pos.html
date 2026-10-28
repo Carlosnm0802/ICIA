@@ -139,18 +139,50 @@
       </div>
     {% endif %}
 
+    {% if sesion.estado != "cancelada" %}
+      <section class="action-bar" aria-label="Acciones de cobro">
+        <div class="action-bar__methods" role="group" aria-label="Método de pago">
+          <span class="action-bar__label">Método</span>
+          <button
+            type="button"
+            class="method-button is-active"
+            data-metodo="efectivo"
+            aria-pressed="true"
+          >
+            <span class="method-button__key">F1</span>
+            <span>Efectivo</span>
+          </button>
+          <button
+            type="button"
+            class="method-button"
+            data-metodo="transferencia"
+            aria-pressed="false"
+          >
+            <span class="method-button__key">F2</span>
+            <span>Transferencia</span>
+          </button>
+        </div>
+        <p class="action-bar__hint">
+          <kbd>Espacio</kbd> cobra con el método activo ·
+          <kbd>F1</kbd>/<kbd>F2</kbd> cobran directo ·
+          <kbd>←</kbd><kbd>→</kbd> mueven ·
+          <kbd>Esc</kbd> limpia
+        </p>
+      </section>
+    {% endif %}
+
     <section class="panel" aria-labelledby="roster-title">
       <div class="section-head section-head--roster">
         <h2 id="roster-title">Lista del grupo</h2>
         <div class="counter-row">
-          <span class="counter counter--pendiente">{{ resumen.pendientes }} pendientes</span>
-          <span class="counter counter--pagado">{{ resumen.pagados }} pagados</span>
-          <span class="counter counter--deuda">{{ resumen.deudas }} deudas</span>
-          <span class="counter counter--falto">{{ resumen.faltas }} faltas</span>
+          <span class="counter counter--pendiente" data-counter="pendientes">{{ resumen.pendientes }} pendientes</span>
+          <span class="counter counter--pagado" data-counter="pagados">{{ resumen.pagados }} pagados</span>
+          <span class="counter counter--deuda" data-counter="deudas">{{ resumen.deudas }} deudas</span>
+          <span class="counter counter--falto" data-counter="faltas">{{ resumen.faltas }} faltas</span>
         </div>
       </div>
 
-      <div class="roster">
+      <div class="roster" data-sesion-id="{{ sesion.id }}">
         {% for alumno in alumnos %}
           <article
             class="student-card"
@@ -168,6 +200,23 @@
         {% endfor %}
       </div>
     </section>
+
+    {% if sesion.estado != "cancelada" %}
+      <div
+        class="toast"
+        id="pos-toast"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        hidden
+      ></div>
+    {% endif %}
   {% endif %}
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if sesion and sesion.estado != "cancelada" %}
+    <script src="{{ url_for('static', path='js/pos.js') }}" defer></script>
+  {% endif %}
 {% endblock %}

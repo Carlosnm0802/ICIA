@@ -31,7 +31,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - [x] **Tarea 2.1** — Crear `app/routers/pos.py` y `pos.html` con listado nominal del grupo del turno.
   - Entregable: selección de sucursal/grupo/sesión y lista alfabética de alumnos.
-- [ ] **Tarea 2.2** — Implementar atajos de teclado (`Espacio` cobro, `F1` efectivo, `F2` transferencia) con feedback visual inmediato.
+- [x] **Tarea 2.2** — Implementar atajos de teclado (`Espacio` cobro, `F1` efectivo, `F2` transferencia) con feedback visual inmediato.
   - Entregable: operación sin mouse y sin recarga completa.
 - [x] **Tarea 2.3** — Implementar `app/services/folios.py` con consecutivo atómico por sucursal (`REF-0001`).
   - Entregable: folio único bajo concurrencia y prueba de no reutilización.
@@ -110,6 +110,6 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1, 2.3 y 2.4 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.2 — atajos de teclado y feedback visual**.
+- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3 y 2.4 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.5 — ticket térmico**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

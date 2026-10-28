@@ -284,6 +284,9 @@ def test_static_css_is_served(
 
     assert response.status_code == 200
     assert "--primary" in response.text
+    assert ".action-bar" in response.text
+    assert ".toast" in response.text
+    assert ".student-card--cobrando" in response.text
 
 
 def test_clave_orden_ignores_accents_and_case() -> None:
@@ -295,3 +298,65 @@ def test_clave_orden_ignores_accents_and_case() -> None:
         "Carlos",
         "Zoe",
     ]
+
+
+def test_pos_session_includes_keyboard_controls(
+    pos_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = pos_app
+    sucursal_id, grupo_id = _ref_ids(factory)
+    sesion_id = _create_today_session(factory, grupo_id)
+
+    response = client.get(
+        f"/pos?sucursal_id={sucursal_id}"
+        f"&grupo_id={grupo_id}"
+        f"&sesion_id={sesion_id}"
+    )
+
+    assert response.status_code == 200
+    assert f'data-sesion-id="{sesion_id}"' in response.text
+    assert 'data-counter="pendientes"' in response.text
+    assert 'data-counter="pagados"' in response.text
+    assert 'data-counter="deudas"' in response.text
+    assert 'data-counter="faltas"' in response.text
+    assert 'id="pos-toast"' in response.text
+    assert 'data-metodo="efectivo"' in response.text
+    assert 'data-metodo="transferencia"' in response.text
+    assert "/static/js/pos.js" in response.text
+
+
+def test_pos_cancelled_session_omits_keyboard_controls(
+    pos_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = pos_app
+    sucursal_id, grupo_id = _ref_ids(factory)
+    sesion_id = _create_today_session(
+        factory,
+        grupo_id,
+        estado="cancelada",
+    )
+
+    response = client.get(
+        f"/pos?sucursal_id={sucursal_id}"
+        f"&grupo_id={grupo_id}"
+        f"&sesion_id={sesion_id}"
+    )
+
+    assert response.status_code == 200
+    assert 'id="pos-toast"' not in response.text
+    assert 'data-metodo="efectivo"' not in response.text
+    assert "/static/js/pos.js" not in response.text
+
+
+def test_static_pos_js_is_served(
+    pos_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = pos_app
+    response = client.get("/static/js/pos.js")
+
+    assert response.status_code == 200
+    assert 'fetch("/pos/cobrar"' in response.text
+    assert 'event.key === "F1"' in response.text
+    assert 'event.key === "F2"' in response.text
+    assert "data-counter" in response.text
+    assert "window.location" not in response.text
