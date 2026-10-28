@@ -35,7 +35,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: operación sin mouse y sin recarga completa.
 - [x] **Tarea 2.3** — Implementar `app/services/folios.py` con consecutivo atómico por sucursal (`REF-0001`).
   - Entregable: folio único bajo concurrencia y prueba de no reutilización.
-- [ ] **Tarea 2.4** — Implementar `app/services/cashier.py`: transacción atómica asistencia + pago + folio, con rollback total ante error.
+- [x] **Tarea 2.4** — Implementar `app/services/cashier.py`: transacción atómica asistencia + pago + folio, con rollback total ante error.
   - Entregable: cobro consistente y prueba de rollback.
 - [ ] **Tarea 2.5** — Crear componente de Ticket Térmico (58/80 mm) con encabezado `ICIA` e integración con impresión silenciosa (`@media print` + `--kiosk-printing`).
   - Entregable: ticket foliado con datos completos, nombre ICIA y sin diálogo de impresión.
@@ -110,7 +110,6 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1 y 2.3 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.4 — cobro atómico**.
-- La Tarea 2.2 se hará después de 2.4 porque los atajos necesitan el endpoint de cobro.
+- Fase 2 en curso: **Tareas 2.1, 2.3 y 2.4 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.2 — atajos de teclado y feedback visual**.
 - Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

@@ -1,9 +1,10 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.config import APP_NAME
@@ -14,6 +15,7 @@ from app.core.format import (
     formato_fecha_larga,
     formato_mxn,
 )
+from app.services import cashier as cashier_service
 from app.services import pos as pos_service
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
@@ -25,6 +27,12 @@ templates.env.filters["fecha_larga"] = formato_fecha_larga
 templates.env.globals["app_name"] = APP_NAME
 
 router = APIRouter(prefix="/pos", tags=["pos"])
+
+
+class CobroRequest(BaseModel):
+    sesion_id: int = Field(gt=0)
+    alumno_id: int = Field(gt=0)
+    metodo: Literal["efectivo", "transferencia"] = "efectivo"
 
 
 @router.get("", response_class=HTMLResponse)
@@ -99,3 +107,65 @@ def abrir_sesion_hoy(
         ),
         status_code=303,
     )
+
+
+@router.post("/cobrar")
+def cobrar_sesion(
+    payload: CobroRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        resultado = cashier_service.cobrar_sesion(
+            db,
+            sesion_id=payload.sesion_id,
+            alumno_id=payload.alumno_id,
+            metodo=payload.metodo,
+        )
+    except cashier_service.CashierError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    alumnos, resumen = pos_service.listar_roster(
+        db,
+        resultado.grupo_id,
+        resultado.sesion_id,
+    )
+    alumno = next(
+        (item for item in alumnos if item.id == resultado.alumno_id),
+        None,
+    )
+
+    return {
+        "ok": True,
+        "pago": {
+            "id": resultado.pago_id,
+            "folio": resultado.folio,
+            "alumno_id": resultado.alumno_id,
+            "alumno": resultado.alumno,
+            "grupo_id": resultado.grupo_id,
+            "grupo": resultado.grupo,
+            "sucursal_id": resultado.sucursal_id,
+            "sucursal": resultado.sucursal,
+            "sesion_id": resultado.sesion_id,
+            "sesion_fecha": resultado.sesion_fecha,
+            "monto_centavos": resultado.monto_centavos,
+            "monto": formato_mxn(resultado.monto_centavos),
+            "metodo": resultado.metodo,
+            "fecha": resultado.fecha,
+        },
+        "alumno": (
+            {
+                "id": alumno.id,
+                "estado": alumno.estado,
+                "etiqueta": alumno.etiqueta,
+            }
+            if alumno is not None
+            else None
+        ),
+        "resumen": {
+            "total": resumen.total,
+            "pendientes": resumen.pendientes,
+            "pagados": resumen.pagados,
+            "deudas": resumen.deudas,
+            "faltas": resumen.faltas,
+        },
+    }
