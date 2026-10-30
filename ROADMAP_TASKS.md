@@ -39,7 +39,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: cobro consistente y prueba de rollback.
 - [x] **Tarea 2.5** — Crear componente de Ticket Térmico (58/80 mm) con encabezado `ICIA` e integración con impresión silenciosa (`@media print` + `--kiosk-printing`).
   - Entregable: ticket foliado con datos completos, nombre ICIA y sin diálogo de impresión.
-- [ ] **Tarea 2.6** — Botón y ruta "Asistió sin pagar" que registre deuda en un clic.
+- [x] **Tarea 2.6** — Botón y ruta "Asistió sin pagar" que registre deuda en un clic.
   - Entregable: asistencia con `pago_id = NULL` visible en deudas.
 - [ ] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
   - Entregable: pago en estado `cancelado`, asistencia deshecha y auditoría conservada.
@@ -110,7 +110,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4 y 2.5 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.6 — asistió sin pagar**.
+- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5 y 2.6 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.7 — deshacer asistencia**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
