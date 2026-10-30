@@ -12,6 +12,8 @@
   }
 
   const toast = document.getElementById("pos-toast");
+  const ticketFrame = document.getElementById("ticket-frame");
+  const debtButton = document.querySelector('[data-accion="sin-pagar"]');
   const methodButtons = [...document.querySelectorAll("[data-metodo]")];
   const movimientoReducido = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
@@ -19,6 +21,9 @@
 
   let metodo = "efectivo";
   let cobrando = false;
+  let registrando = false;
+  let deshaciendo = false;
+  let tarjetaActual = null;
   let toastTimer = null;
 
   const tarjetas = () => [...roster.querySelectorAll(".student-card")];
@@ -57,6 +62,7 @@
     if (!card) {
       return;
     }
+    tarjetaActual = card;
     card.focus({ preventScroll: !desplazar });
     if (desplazar) {
       card.scrollIntoView({
@@ -68,6 +74,12 @@
 
   function primerPendiente() {
     return pendientes()[0] || null;
+  }
+
+  function tarjetaSeleccionada() {
+    return tarjetaActual?.dataset.estado === "pendiente"
+      ? tarjetaActual
+      : null;
   }
 
   function siguientePendienteDesde(card) {
@@ -97,6 +109,13 @@
     }
   }
 
+  function imprimirTicket(pago) {
+    if (!ticketFrame || !pago || !Number.isInteger(pago.id)) {
+      return;
+    }
+    ticketFrame.src = `/pos/tickets/${encodeURIComponent(pago.id)}?auto=1`;
+  }
+
   function marcarPagado(card, alumno, pago) {
     card.dataset.estado = "pagado";
     card.dataset.folio = pago.folio;
@@ -113,23 +132,80 @@
       pill.textContent = alumno?.etiqueta || "Pagado";
     }
 
+    actualizarBotonDeshacer(card);
     window.setTimeout(() => {
       card.classList.remove("student-card--pagado");
     }, 1200);
   }
 
-  function mensajeError(data, status) {
+  function marcarDeuda(card, alumno, deuda) {
+    card.dataset.estado = "deuda";
+    card.dataset.asistenciaId = deuda.asistencia_id;
+    card.removeAttribute("role");
+    card.removeAttribute("aria-label");
+    card.removeAttribute("aria-busy");
+    card.tabIndex = -1;
+    card.classList.remove("student-card--cobrando");
+    card.classList.add("student-card--deuda");
+
+    const pill = card.querySelector(".pill");
+    if (pill) {
+      pill.className = "pill pill--deuda";
+      pill.textContent = alumno?.etiqueta || "Deuda";
+    }
+
+    actualizarBotonDeshacer(card);
+    window.setTimeout(() => {
+      card.classList.remove("student-card--deuda");
+    }, 1200);
+  }
+
+  function actualizarBotonDeshacer(card) {
+    const boton = card.querySelector('[data-accion="deshacer"]');
+    if (!boton) {
+      return;
+    }
+    boton.hidden = !["pagado", "deuda"].includes(card.dataset.estado);
+  }
+
+  function marcarPendiente(card) {
+    card.dataset.estado = "pendiente";
+    delete card.dataset.folio;
+    delete card.dataset.asistenciaId;
+    card.removeAttribute("aria-busy");
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute(
+      "aria-label",
+      `Cobrar a ${card.querySelector("h3")?.textContent || "alumno"}`,
+    );
+    card.classList.remove(
+      "student-card--cobrando",
+      "student-card--pagado",
+      "student-card--deuda",
+    );
+
+    const pill = card.querySelector(".pill");
+    if (pill) {
+      pill.className = "pill pill--pendiente";
+      pill.textContent = "Pendiente";
+    }
+
+    actualizarBotonDeshacer(card);
+  }
+
+  function mensajeError(data, status, accion = "cobrar") {
     if (typeof data.detail === "string") {
       return data.detail;
     }
     if (Array.isArray(data.detail)) {
       return "Datos de cobro inválidos.";
     }
-    return `No se pudo cobrar (${status}).`;
+    return `No se pudo ${accion} (${status}).`;
   }
 
   async function cobrar(card, metodoSolicitado = metodo) {
-    if (!card || cobrando) {
+    if (!card || cobrando || registrando || deshaciendo) {
       return;
     }
     if (card.dataset.estado !== "pendiente") {
@@ -178,6 +254,7 @@
         `${data.pago.folio} · ${data.pago.alumno} · ${data.pago.monto} · ${nombreMetodo(data.pago.metodo)}`,
         "success",
       );
+      imprimirTicket(data.pago);
 
       if (siguiente && siguiente !== card) {
         enfocar(siguiente);
@@ -196,6 +273,152 @@
       mostrarToast(mensaje, "error");
     } finally {
       cobrando = false;
+    }
+  }
+
+  async function registrarDeuda(card) {
+    if (!card || registrando || cobrando || deshaciendo) {
+      return;
+    }
+    if (card.dataset.estado !== "pendiente") {
+      mostrarToast("Ese alumno no está pendiente de registro.", "error");
+      return;
+    }
+
+    const alumnoId = Number(card.dataset.alumnoId);
+    if (!Number.isInteger(alumnoId) || alumnoId <= 0) {
+      return;
+    }
+
+    registrando = true;
+    card.classList.add("student-card--cobrando");
+    card.setAttribute("aria-busy", "true");
+
+    try {
+      const response = await fetch("/pos/asistio-sin-pagar", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sesion_id: sesionId,
+          alumno_id: alumnoId,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          mensajeError(data, response.status, "registrar la deuda"),
+        );
+      }
+      if (!data.deuda || !data.resumen) {
+        throw new Error(
+          "El servidor no confirmó la deuda. Revisa la lista.",
+        );
+      }
+
+      const siguiente = siguientePendienteDesde(card);
+      marcarDeuda(card, data.alumno, data.deuda);
+      actualizarResumen(data.resumen);
+      mostrarToast(
+        `Deuda registrada · ${data.deuda.alumno} · ${data.deuda.monto}`,
+        "success",
+      );
+
+      if (siguiente && siguiente !== card) {
+        enfocar(siguiente);
+      } else if (document.activeElement === card) {
+        card.blur();
+      }
+    } catch (error) {
+      card.classList.remove("student-card--cobrando");
+      card.removeAttribute("aria-busy");
+      let mensaje = "No se pudo registrar la deuda.";
+      if (error instanceof TypeError) {
+        mensaje = "No se pudo conectar con el servidor local.";
+      } else if (error instanceof Error) {
+        mensaje = error.message;
+      }
+      mostrarToast(mensaje, "error");
+    } finally {
+      registrando = false;
+    }
+  }
+
+  async function deshacerAsistencia(card) {
+    if (!card || deshaciendo || cobrando || registrando) {
+      return;
+    }
+    if (!["pagado", "deuda"].includes(card.dataset.estado)) {
+      return;
+    }
+
+    const alumnoId = Number(card.dataset.alumnoId);
+    if (!Number.isInteger(alumnoId) || alumnoId <= 0) {
+      return;
+    }
+
+    const nombre = card.querySelector("h3")?.textContent || "alumno";
+    const confirmacion =
+      card.dataset.estado === "pagado"
+        ? `¿Deshacer la asistencia de ${nombre}? El pago quedará cancelado y el folio se conservará.`
+        : `¿Eliminar la deuda de ${nombre}? La asistencia se borrará.`;
+    if (!window.confirm(confirmacion)) {
+      return;
+    }
+
+    deshaciendo = true;
+    card.classList.add("student-card--cobrando");
+    card.setAttribute("aria-busy", "true");
+
+    try {
+      const response = await fetch("/pos/deshacer-asistencia", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sesion_id: sesionId,
+          alumno_id: alumnoId,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          mensajeError(data, response.status, "deshacer la asistencia"),
+        );
+      }
+      if (!data.deshecho || !data.resumen) {
+        throw new Error(
+          "El servidor no confirmó la anulación. Revisa la lista.",
+        );
+      }
+
+      marcarPendiente(card);
+      actualizarResumen(data.resumen);
+      mostrarToast(
+        data.deshecho.tipo === "pago"
+          ? `Asistencia deshecha · ${data.deshecho.folio} cancelado`
+          : `Deuda eliminada · ${data.deshecho.alumno}`,
+        "success",
+      );
+      enfocar(card, false);
+    } catch (error) {
+      card.classList.remove("student-card--cobrando");
+      card.removeAttribute("aria-busy");
+      let mensaje = "No se pudo deshacer la asistencia.";
+      if (error instanceof TypeError) {
+        mensaje = "No se pudo conectar con el servidor local.";
+      } else if (error instanceof Error) {
+        mensaje = error.message;
+      }
+      mostrarToast(mensaje, "error");
+    } finally {
+      deshaciendo = false;
     }
   }
 
@@ -231,6 +454,10 @@
       card.tabIndex = -1;
     }
 
+    card.addEventListener("focus", () => {
+      tarjetaActual = card;
+    });
+
     card.addEventListener("click", () => {
       if (card.dataset.estado === "pendiente") {
         cobrar(card);
@@ -243,12 +470,31 @@
         cobrar(card);
       }
     });
+
+    const undoButton = card.querySelector('[data-accion="deshacer"]');
+    if (undoButton) {
+      undoButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        deshacerAsistencia(card);
+      });
+    }
   }
 
   for (const button of methodButtons) {
     button.addEventListener("click", () => {
       actualizarMetodo(button.dataset.metodo);
       mostrarToast(`Método: ${nombreMetodo(metodo)}.`, "info");
+    });
+  }
+
+  if (debtButton) {
+    debtButton.addEventListener("click", () => {
+      const card = tarjetaSeleccionada() || primerPendiente();
+      if (card) {
+        registrarDeuda(card);
+      } else {
+        mostrarToast("No hay alumnos pendientes.", "info");
+      }
     });
   }
 
@@ -263,7 +509,8 @@
       event.key === " " ||
       event.code === "Space" ||
       event.key === "F1" ||
-      event.key === "F2";
+      event.key === "F2" ||
+      event.key === "F3";
     if (enCampo || (event.repeat && esCobro)) {
       return;
     }
@@ -272,15 +519,26 @@
       activo instanceof HTMLElement
         ? activo.closest(".student-card")
         : null;
+    const cardSeleccionada =
+      cardActivo || tarjetaSeleccionada() || primerPendiente();
+
+    if (event.key === "F3") {
+      event.preventDefault();
+      if (cardSeleccionada) {
+        registrarDeuda(cardSeleccionada);
+      } else {
+        mostrarToast("No hay alumnos pendientes.", "info");
+      }
+      return;
+    }
 
     if (event.key === "F1" || event.key === "F2") {
       event.preventDefault();
       const nuevoMetodo =
         event.key === "F1" ? "efectivo" : "transferencia";
       actualizarMetodo(nuevoMetodo);
-      const card = cardActivo || primerPendiente();
-      if (card) {
-        cobrar(card, nuevoMetodo);
+      if (cardSeleccionada) {
+        cobrar(cardSeleccionada, nuevoMetodo);
       } else {
         mostrarToast("No hay alumnos pendientes.", "info");
       }
@@ -292,9 +550,8 @@
         return;
       }
       event.preventDefault();
-      const card = cardActivo || primerPendiente();
-      if (card) {
-        cobrar(card, metodo);
+      if (cardSeleccionada) {
+        cobrar(cardSeleccionada, metodo);
       } else {
         mostrarToast("No hay alumnos pendientes.", "info");
       }

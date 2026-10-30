@@ -37,13 +37,13 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: folio único bajo concurrencia y prueba de no reutilización.
 - [x] **Tarea 2.4** — Implementar `app/services/cashier.py`: transacción atómica asistencia + pago + folio, con rollback total ante error.
   - Entregable: cobro consistente y prueba de rollback.
-- [ ] **Tarea 2.5** — Crear componente de Ticket Térmico (58/80 mm) con encabezado `ICIA` e integración con impresión silenciosa (`@media print` + `--kiosk-printing`).
+- [x] **Tarea 2.5** — Crear componente de Ticket Térmico (58/80 mm) con encabezado `ICIA` e integración con impresión silenciosa (`@media print` + `--kiosk-printing`).
   - Entregable: ticket foliado con datos completos, nombre ICIA y sin diálogo de impresión.
-- [ ] **Tarea 2.6** — Botón y ruta "Asistió sin pagar" que registre deuda en un clic.
+- [x] **Tarea 2.6** — Botón y ruta "Asistió sin pagar" que registre deuda en un clic.
   - Entregable: asistencia con `pago_id = NULL` visible en deudas.
-- [ ] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
+- [x] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
   - Entregable: pago en estado `cancelado`, asistencia deshecha y auditoría conservada.
-- [ ] **Tarea 2.8** — Reimpresión de ticket por folio con los mismos datos.
+- [x] **Tarea 2.8** — Reimpresión de ticket por folio con los mismos datos.
   - Entregable: mismo folio y contenido que el original.
 - [ ] **Tarea 2.9** — Implementar `auth.py` con contraseña hasheada y sesión local, mostrando `ICIA` en el login.
   - Entregable: acceso protegido al sistema con identidad ICIA visible.
@@ -110,6 +110,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3 y 2.4 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.5 — ticket térmico**.
-- Pendientes de confirmación con el dueño antes de Fase 2: ancho de rollo (58/80 mm), modelo de impresora, prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
+- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7 y 2.8 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.9 — auth/login con identidad ICIA**.
+- Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
+- Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

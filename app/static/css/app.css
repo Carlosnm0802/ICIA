@@ -265,6 +265,35 @@ textarea {
   justify-content: flex-end;
 }
 
+.reprint-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reprint-form__label {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.reprint-form__input {
+  width: 9.5rem;
+  min-height: 48px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--slate-900);
+  text-transform: uppercase;
+}
+
+.reprint-form__input::placeholder {
+  color: var(--on-surface-variant);
+  text-transform: none;
+}
+
 .button {
   display: inline-flex;
   min-height: 48px;
@@ -592,6 +621,10 @@ textarea {
   animation: card-paid 900ms ease-out;
 }
 
+.student-card--deuda {
+  animation: card-debt 900ms ease-out;
+}
+
 @keyframes card-paid {
   0% {
     border-color: #10b981;
@@ -604,6 +637,48 @@ textarea {
     background: var(--surface-container-lowest);
     transform: scale(1);
   }
+}
+
+@keyframes card-debt {
+  0% {
+    border-color: var(--amber);
+    background: #fffbeb;
+    transform: scale(1.01);
+  }
+
+  100% {
+    border-color: var(--slate-200);
+    background: var(--surface-container-lowest);
+    transform: scale(1);
+  }
+}
+
+.student-card__undo {
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-md);
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.student-card__undo:hover {
+  border-color: #fda4af;
+  background: #ffe4e6;
+}
+
+.student-card__undo:active {
+  transform: translateY(1.5px);
+}
+
+.student-card__undo[hidden] {
+  display: none;
 }
 
 .student-card__avatar {
@@ -705,7 +780,8 @@ textarea {
   backdrop-filter: blur(10px);
 }
 
-.action-bar__methods {
+.action-bar__methods,
+.action-bar__debt {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -756,6 +832,21 @@ textarea {
 
 .method-button.is-active:hover {
   background: #4338ca;
+}
+
+.method-button--debt {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.method-button--debt:hover {
+  border-color: var(--amber);
+  background: #fef3c7;
+}
+
+.method-button--debt .method-button__key {
+  background: rgba(180, 83, 9, 0.12);
 }
 
 .method-button__key {
@@ -829,6 +920,17 @@ textarea {
   border-color: var(--slate-200);
   background: var(--surface-container-low);
   color: var(--slate-700);
+}
+
+.ticket-frame {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 @keyframes toast-in {
@@ -929,6 +1031,15 @@ textarea {
     display: none;
   }
 
+  .reprint-form {
+    width: 100%;
+  }
+
+  .reprint-form__input {
+    flex: 1 1 8rem;
+    width: auto;
+  }
+
   .choice-grid,
   .roster {
     grid-template-columns: 1fr;
@@ -953,6 +1064,11 @@ textarea {
   .action-bar__methods {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .action-bar__debt {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .action-bar__label {

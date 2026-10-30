@@ -225,6 +225,21 @@ def test_pos_roster_shows_payment_states(
     assert "1 deudas" in response.text
     assert "1 faltas" in response.text
 
+    for nombre, oculto in (
+        ("Alumno 01", False),
+        ("Alumno 02", False),
+        ("Alumno 03", True),
+        ("Alumno 04", True),
+    ):
+        match = re.search(
+            rf'data-alumno-id="{alumnos[nombre]}"[\s\S]*?'
+            rf'data-accion="deshacer"[^>]*>',
+            response.text,
+        )
+        assert match is not None
+        tiene_hidden = bool(re.search(r"\shidden(?=[\s>])", match.group()))
+        assert tiene_hidden == oculto
+
 
 def test_pos_empty_branch(
     pos_app: tuple[TestClient, sessionmaker[Session]],
@@ -287,6 +302,9 @@ def test_static_css_is_served(
     assert ".action-bar" in response.text
     assert ".toast" in response.text
     assert ".student-card--cobrando" in response.text
+    assert ".student-card__undo" in response.text
+    assert ".method-button--debt" in response.text
+    assert ".student-card--deuda" in response.text
 
 
 def test_clave_orden_ignores_accents_and_case() -> None:
@@ -322,6 +340,9 @@ def test_pos_session_includes_keyboard_controls(
     assert 'id="pos-toast"' in response.text
     assert 'data-metodo="efectivo"' in response.text
     assert 'data-metodo="transferencia"' in response.text
+    assert 'data-accion="sin-pagar"' in response.text
+    assert 'data-accion="deshacer"' in response.text
+    assert "<kbd>F3</kbd> registra deuda" in response.text
     assert "/static/js/pos.js" in response.text
 
 
@@ -345,6 +366,8 @@ def test_pos_cancelled_session_omits_keyboard_controls(
     assert response.status_code == 200
     assert 'id="pos-toast"' not in response.text
     assert 'data-metodo="efectivo"' not in response.text
+    assert 'data-accion="sin-pagar"' not in response.text
+    assert 'data-accion="deshacer"' not in response.text
     assert "/static/js/pos.js" not in response.text
 
 
@@ -356,7 +379,13 @@ def test_static_pos_js_is_served(
 
     assert response.status_code == 200
     assert 'fetch("/pos/cobrar"' in response.text
+    assert 'fetch("/pos/asistio-sin-pagar"' in response.text
+    assert 'fetch("/pos/deshacer-asistencia"' in response.text
     assert 'event.key === "F1"' in response.text
     assert 'event.key === "F2"' in response.text
+    assert 'event.key === "F3"' in response.text
+    assert "registrarDeuda" in response.text
+    assert "deshacerAsistencia" in response.text
+    assert "window.confirm" in response.text
     assert "data-counter" in response.text
     assert "window.location" not in response.text

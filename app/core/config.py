@@ -7,6 +7,18 @@ HOST = os.getenv("ICIA_HOST", "127.0.0.1")
 PORT = int(os.getenv("ICIA_PORT", "8000"))
 
 
+def _ticket_width() -> int:
+    valor = os.getenv("ICIA_TICKET_ANCHO_MM", "80")
+    try:
+        ancho = int(valor)
+    except ValueError:
+        return 80
+    return ancho if ancho in (58, 80) else 80
+
+
+TICKET_ANCHO_MM = _ticket_width()
+
+
 def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent

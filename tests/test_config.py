@@ -5,6 +5,7 @@ from app.core.config import (
     DATA_DIR,
     DATABASE_PATH,
     PHOTOS_DIR,
+    TICKET_ANCHO_MM,
 )
 
 
@@ -22,3 +23,7 @@ def test_paths_are_absolute() -> None:
 
 def test_database_path_uses_sqlite_file() -> None:
     assert DATABASE_PATH.suffix == ".db"
+
+
+def test_ticket_width_is_supported() -> None:
+    assert TICKET_ANCHO_MM in (58, 80)

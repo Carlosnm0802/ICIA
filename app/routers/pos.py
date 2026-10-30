@@ -12,16 +12,19 @@ from app.core.database import get_db
 from app.core.format import (
     formato_fecha,
     formato_fecha_corta,
+    formato_fecha_hora,
     formato_fecha_larga,
     formato_mxn,
 )
 from app.services import cashier as cashier_service
 from app.services import pos as pos_service
+from app.services import thermal_printer
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.filters["mxn"] = formato_mxn
 templates.env.filters["fecha"] = formato_fecha
+templates.env.filters["fecha_hora"] = formato_fecha_hora
 templates.env.filters["fecha_corta"] = formato_fecha_corta
 templates.env.filters["fecha_larga"] = formato_fecha_larga
 templates.env.globals["app_name"] = APP_NAME
@@ -33,6 +36,16 @@ class CobroRequest(BaseModel):
     sesion_id: int = Field(gt=0)
     alumno_id: int = Field(gt=0)
     metodo: Literal["efectivo", "transferencia"] = "efectivo"
+
+
+class DeudaRequest(BaseModel):
+    sesion_id: int = Field(gt=0)
+    alumno_id: int = Field(gt=0)
+
+
+class DeshacerRequest(BaseModel):
+    sesion_id: int = Field(gt=0)
+    alumno_id: int = Field(gt=0)
 
 
 @router.get("", response_class=HTMLResponse)
@@ -87,6 +100,46 @@ def mostrar_pos(
             "resumen": resumen,
         },
     )
+
+
+def _respuesta_ticket(
+    request: Request,
+    ticket: thermal_printer.TicketData,
+    auto: bool,
+) -> HTMLResponse:
+    response = templates.TemplateResponse(
+        request=request,
+        name="ticket.html",
+        context={"ticket": ticket, "auto": auto},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.get("/tickets/folio", response_class=HTMLResponse)
+def mostrar_ticket_por_folio(
+    request: Request,
+    folio: Annotated[str, Query(min_length=1, max_length=32)],
+    auto: Annotated[bool, Query()] = False,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    ticket = thermal_printer.obtener_ticket_por_folio(db, folio)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
+    return _respuesta_ticket(request, ticket, auto)
+
+
+@router.get("/tickets/{pago_id}", response_class=HTMLResponse)
+def mostrar_ticket(
+    pago_id: int,
+    request: Request,
+    auto: Annotated[bool, Query()] = False,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    ticket = thermal_printer.obtener_ticket(db, pago_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
+    return _respuesta_ticket(request, ticket, auto)
 
 
 @router.post("/sesiones")
@@ -151,6 +204,124 @@ def cobrar_sesion(
             "monto": formato_mxn(resultado.monto_centavos),
             "metodo": resultado.metodo,
             "fecha": resultado.fecha,
+        },
+        "alumno": (
+            {
+                "id": alumno.id,
+                "estado": alumno.estado,
+                "etiqueta": alumno.etiqueta,
+            }
+            if alumno is not None
+            else None
+        ),
+        "resumen": {
+            "total": resumen.total,
+            "pendientes": resumen.pendientes,
+            "pagados": resumen.pagados,
+            "deudas": resumen.deudas,
+            "faltas": resumen.faltas,
+        },
+    }
+
+
+@router.post("/asistio-sin-pagar")
+def registrar_deuda(
+    payload: DeudaRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        resultado = cashier_service.registrar_deuda(
+            db,
+            sesion_id=payload.sesion_id,
+            alumno_id=payload.alumno_id,
+        )
+    except cashier_service.CashierError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    alumnos, resumen = pos_service.listar_roster(
+        db,
+        resultado.grupo_id,
+        resultado.sesion_id,
+    )
+    alumno = next(
+        (item for item in alumnos if item.id == resultado.alumno_id),
+        None,
+    )
+
+    return {
+        "ok": True,
+        "deuda": {
+            "asistencia_id": resultado.asistencia_id,
+            "alumno_id": resultado.alumno_id,
+            "alumno": resultado.alumno,
+            "grupo_id": resultado.grupo_id,
+            "grupo": resultado.grupo,
+            "sucursal_id": resultado.sucursal_id,
+            "sucursal": resultado.sucursal,
+            "sesion_id": resultado.sesion_id,
+            "sesion_fecha": resultado.sesion_fecha,
+            "monto_centavos": resultado.monto_centavos,
+            "monto": formato_mxn(resultado.monto_centavos),
+        },
+        "alumno": (
+            {
+                "id": alumno.id,
+                "estado": alumno.estado,
+                "etiqueta": alumno.etiqueta,
+            }
+            if alumno is not None
+            else None
+        ),
+        "resumen": {
+            "total": resumen.total,
+            "pendientes": resumen.pendientes,
+            "pagados": resumen.pagados,
+            "deudas": resumen.deudas,
+            "faltas": resumen.faltas,
+        },
+    }
+
+
+@router.post("/deshacer-asistencia")
+def deshacer_asistencia(
+    payload: DeshacerRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        resultado = cashier_service.deshacer_asistencia(
+            db,
+            sesion_id=payload.sesion_id,
+            alumno_id=payload.alumno_id,
+        )
+    except cashier_service.CashierError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    alumnos, resumen = pos_service.listar_roster(
+        db,
+        resultado.grupo_id,
+        resultado.sesion_id,
+    )
+    alumno = next(
+        (item for item in alumnos if item.id == resultado.alumno_id),
+        None,
+    )
+
+    return {
+        "ok": True,
+        "deshecho": {
+            "tipo": resultado.tipo,
+            "pago_id": resultado.pago_id,
+            "folio": resultado.folio,
+            "alumno_id": resultado.alumno_id,
+            "alumno": resultado.alumno,
+            "grupo_id": resultado.grupo_id,
+            "grupo": resultado.grupo,
+            "sucursal_id": resultado.sucursal_id,
+            "sucursal": resultado.sucursal,
+            "sesion_id": resultado.sesion_id,
+            "sesion_fecha": resultado.sesion_fecha,
+            "monto_centavos": resultado.monto_centavos,
+            "monto": formato_mxn(resultado.monto_centavos),
         },
         "alumno": (
             {

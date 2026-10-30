@@ -26,6 +26,22 @@
     </p>
   </div>
   <div class="page-head__actions">
+    <form class="reprint-form" method="get" action="/pos/tickets/folio">
+      <label class="reprint-form__label" for="folio-reimpresion">Folio</label>
+      <input
+        class="reprint-form__input"
+        id="folio-reimpresion"
+        name="folio"
+        type="text"
+        placeholder="REF-0001"
+        maxlength="32"
+        autocomplete="off"
+        spellcheck="false"
+        required
+      >
+      <input type="hidden" name="auto" value="1">
+      <button class="button button--ghost" type="submit">Reimprimir</button>
+    </form>
     {% if grupo %}
       <a class="button button--ghost" href="/pos?sucursal_id={{ sucursal.id }}">Cambiar grupo</a>
     {% endif %}
@@ -162,9 +178,21 @@
             <span>Transferencia</span>
           </button>
         </div>
+        <div class="action-bar__debt">
+          <span class="action-bar__label">Sin cobro</span>
+          <button
+            type="button"
+            class="method-button method-button--debt"
+            data-accion="sin-pagar"
+          >
+            <span class="method-button__key">F3</span>
+            <span>Asistió sin pagar</span>
+          </button>
+        </div>
         <p class="action-bar__hint">
           <kbd>Espacio</kbd> cobra con el método activo ·
           <kbd>F1</kbd>/<kbd>F2</kbd> cobran directo ·
+          <kbd>F3</kbd> registra deuda ·
           <kbd>←</kbd><kbd>→</kbd> mueven ·
           <kbd>Esc</kbd> limpia
         </p>
@@ -194,6 +222,15 @@
               <h3>{{ alumno.nombre }}</h3>
               <span class="pill pill--{{ alumno.estado }}">{{ alumno.etiqueta }}</span>
             </div>
+            {% if sesion.estado != "cancelada" %}
+              <button
+                type="button"
+                class="student-card__undo"
+                data-accion="deshacer"
+                aria-label="Deshacer asistencia de {{ alumno.nombre }}"
+                {% if alumno.estado not in ("pagado", "deuda") %}hidden{% endif %}
+              >Deshacer</button>
+            {% endif %}
           </article>
         {% else %}
           <p class="empty-state">Este grupo no tiene alumnos activos.</p>
@@ -210,6 +247,14 @@
         aria-atomic="true"
         hidden
       ></div>
+
+      <iframe
+        id="ticket-frame"
+        class="ticket-frame"
+        title="Ticket térmico"
+        aria-hidden="true"
+        tabindex="-1"
+      ></iframe>
     {% endif %}
   {% endif %}
 {% endif %}

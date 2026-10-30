@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket {{ ticket.folio }} · {{ app_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/ticket.css') }}">
+  <style>
+    @page {
+      size: {{ ticket.ancho_mm }}mm auto;
+      margin: 0;
+    }
+  </style>
+</head>
+<body class="ticket-page">
+  <main class="ticket ticket--{{ ticket.ancho_mm }}" aria-label="Ticket {{ ticket.folio }}">
+    <header class="ticket__header">
+      <p class="ticket__brand">{{ app_name }}</p>
+      <p class="ticket__tagline">Sistema de gestión para escuela de Robótica e Inglés</p>
+      <p class="ticket__branch">{{ ticket.sucursal }}</p>
+      {% if ticket.sucursal_direccion %}
+        <p class="ticket__muted">{{ ticket.sucursal_direccion }}</p>
+      {% endif %}
+      {% if ticket.sucursal_telefono %}
+        <p class="ticket__muted">Tel. {{ ticket.sucursal_telefono }}</p>
+      {% endif %}
+    </header>
+
+    <div class="ticket__rule"></div>
+
+    <dl class="ticket__meta">
+      <div>
+        <dt>Folio</dt>
+        <dd>{{ ticket.folio }}</dd>
+      </div>
+      <div>
+        <dt>Fecha</dt>
+        <dd>{{ ticket.fecha|fecha_hora }}</dd>
+      </div>
+      <div>
+        <dt>Estado</dt>
+        <dd>{{ ticket.estado_etiqueta }}</dd>
+      </div>
+    </dl>
+
+    <div class="ticket__rule"></div>
+
+    <dl class="ticket__details">
+      <div>
+        <dt>Alumno</dt>
+        <dd>{{ ticket.alumno }}</dd>
+      </div>
+      {% if ticket.grupo %}
+        <div>
+          <dt>Grupo</dt>
+          <dd>{{ ticket.grupo }}</dd>
+        </div>
+      {% endif %}
+      {% if ticket.materias %}
+        <div>
+          <dt>Materias</dt>
+          <dd>{{ ticket.materias|join(" + ") }}</dd>
+        </div>
+      {% endif %}
+      {% if ticket.sesion_fecha %}
+        <div>
+          <dt>Sesión</dt>
+          <dd>{{ ticket.sesion_fecha|fecha }}</dd>
+        </div>
+      {% endif %}
+    </dl>
+
+    <div class="ticket__rule"></div>
+
+    <dl class="ticket__totals">
+      <div>
+        <dt>Método</dt>
+        <dd>{{ ticket.metodo_etiqueta }}</dd>
+      </div>
+      <div class="ticket__amount">
+        <dt>Total</dt>
+        <dd>{{ ticket.monto_centavos|mxn }}</dd>
+      </div>
+    </dl>
+
+    <div class="ticket__rule"></div>
+
+    <footer class="ticket__footer">
+      <p>Gracias por su preferencia.</p>
+      <p>Conserve este ticket.</p>
+    </footer>
+  </main>
+
+  <div class="ticket-actions">
+    <button type="button" id="ticket-print">Imprimir</button>
+    <a href="/pos">Volver al cobro</a>
+  </div>
+
+  <script>
+    document.getElementById("ticket-print")?.addEventListener("click", () => window.print());
+  </script>
+  {% if auto %}
+    <script id="ticket-auto-print">
+      window.addEventListener("load", () => {
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => window.print());
+        } else {
+          window.print();
+        }
+      });
+    </script>
+  {% endif %}
+</body>
+</html>
