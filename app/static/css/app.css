@@ -592,28 +592,10 @@ textarea {
   animation: card-paid 900ms ease-out;
 }
 
-.student-card--deuda {
-  animation: card-debt 900ms ease-out;
-}
-
 @keyframes card-paid {
   0% {
     border-color: #10b981;
     background: #ecfdf5;
-    transform: scale(1.01);
-  }
-
-  100% {
-    border-color: var(--slate-200);
-    background: var(--surface-container-lowest);
-    transform: scale(1);
-  }
-}
-
-@keyframes card-debt {
-  0% {
-    border-color: var(--amber);
-    background: #fffbeb;
     transform: scale(1.01);
   }
 
@@ -723,8 +705,7 @@ textarea {
   backdrop-filter: blur(10px);
 }
 
-.action-bar__methods,
-.action-bar__debt {
+.action-bar__methods {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -775,21 +756,6 @@ textarea {
 
 .method-button.is-active:hover {
   background: #4338ca;
-}
-
-.method-button--debt {
-  border-color: #fcd34d;
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.method-button--debt:hover {
-  border-color: var(--amber);
-  background: #fef3c7;
-}
-
-.method-button--debt .method-button__key {
-  background: rgba(180, 83, 9, 0.12);
 }
 
 .method-button__key {
@@ -998,11 +964,6 @@ textarea {
   .action-bar__methods {
     display: grid;
     grid-template-columns: 1fr 1fr;
-  }
-
-  .action-bar__debt {
-    display: grid;
-    grid-template-columns: 1fr;
   }
 
   .action-bar__label {
