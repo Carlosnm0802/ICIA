@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 DIAS = (
     "lunes",
@@ -37,6 +37,14 @@ def formato_fecha(iso: str) -> str:
     except ValueError:
         return iso
     return fecha.strftime("%d/%m/%Y")
+
+
+def formato_fecha_hora(iso: str) -> str:
+    try:
+        fecha = datetime.fromisoformat(iso)
+    except ValueError:
+        return iso
+    return fecha.strftime("%d/%m/%Y %H:%M")
 
 
 def formato_fecha_corta(iso: str) -> str:

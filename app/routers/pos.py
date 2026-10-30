@@ -12,16 +12,19 @@ from app.core.database import get_db
 from app.core.format import (
     formato_fecha,
     formato_fecha_corta,
+    formato_fecha_hora,
     formato_fecha_larga,
     formato_mxn,
 )
 from app.services import cashier as cashier_service
 from app.services import pos as pos_service
+from app.services import thermal_printer
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.filters["mxn"] = formato_mxn
 templates.env.filters["fecha"] = formato_fecha
+templates.env.filters["fecha_hora"] = formato_fecha_hora
 templates.env.filters["fecha_corta"] = formato_fecha_corta
 templates.env.filters["fecha_larga"] = formato_fecha_larga
 templates.env.globals["app_name"] = APP_NAME
@@ -87,6 +90,26 @@ def mostrar_pos(
             "resumen": resumen,
         },
     )
+
+
+@router.get("/tickets/{pago_id}", response_class=HTMLResponse)
+def mostrar_ticket(
+    pago_id: int,
+    request: Request,
+    auto: Annotated[bool, Query()] = False,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    ticket = thermal_printer.obtener_ticket(db, pago_id)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
+
+    response = templates.TemplateResponse(
+        request=request,
+        name="ticket.html",
+        context={"ticket": ticket, "auto": auto},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @router.post("/sesiones")

@@ -12,6 +12,7 @@
   }
 
   const toast = document.getElementById("pos-toast");
+  const ticketFrame = document.getElementById("ticket-frame");
   const methodButtons = [...document.querySelectorAll("[data-metodo]")];
   const movimientoReducido = window.matchMedia(
     "(prefers-reduced-motion: reduce)",
@@ -97,6 +98,13 @@
     }
   }
 
+  function imprimirTicket(pago) {
+    if (!ticketFrame || !pago || !Number.isInteger(pago.id)) {
+      return;
+    }
+    ticketFrame.src = `/pos/tickets/${encodeURIComponent(pago.id)}?auto=1`;
+  }
+
   function marcarPagado(card, alumno, pago) {
     card.dataset.estado = "pagado";
     card.dataset.folio = pago.folio;
@@ -178,6 +186,7 @@
         `${data.pago.folio} · ${data.pago.alumno} · ${data.pago.monto} · ${nombreMetodo(data.pago.metodo)}`,
         "success",
       );
+      imprimirTicket(data.pago);
 
       if (siguiente && siguiente !== card) {
         enfocar(siguiente);
