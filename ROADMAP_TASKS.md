@@ -43,7 +43,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: asistencia con `pago_id = NULL` visible en deudas.
 - [x] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
   - Entregable: pago en estado `cancelado`, asistencia deshecha y auditoría conservada.
-- [ ] **Tarea 2.8** — Reimpresión de ticket por folio con los mismos datos.
+- [x] **Tarea 2.8** — Reimpresión de ticket por folio con los mismos datos.
   - Entregable: mismo folio y contenido que el original.
 - [ ] **Tarea 2.9** — Implementar `auth.py` con contraseña hasheada y sesión local, mostrando `ICIA` en el login.
   - Entregable: acceso protegido al sistema con identidad ICIA visible.
@@ -110,7 +110,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 y 2.7 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.8 — reimpresión de ticket por folio**.
+- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7 y 2.8 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.9 — auth/login con identidad ICIA**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

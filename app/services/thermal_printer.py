@@ -67,11 +67,7 @@ def obtener_ancho_ticket(db: Session) -> int:
     return 80
 
 
-def obtener_ticket(db: Session, pago_id: int) -> TicketData | None:
-    pago = db.get(Pago, pago_id)
-    if pago is None:
-        return None
-
+def _ticket_desde_pago(db: Session, pago: Pago) -> TicketData:
     alumno = db.get(Alumno, pago.alumno_id)
     sucursal = db.get(Sucursal, pago.sucursal_id)
     asistencia = db.scalar(
@@ -117,3 +113,21 @@ def obtener_ticket(db: Session, pago_id: int) -> TicketData | None:
         metodo_etiqueta=METODOS.get(pago.metodo, pago.metodo.capitalize()),
         ancho_mm=obtener_ancho_ticket(db),
     )
+
+
+def obtener_ticket(db: Session, pago_id: int) -> TicketData | None:
+    pago = db.get(Pago, pago_id)
+    if pago is None:
+        return None
+    return _ticket_desde_pago(db, pago)
+
+
+def obtener_ticket_por_folio(db: Session, folio: str) -> TicketData | None:
+    normalizado = folio.strip().upper()
+    if not normalizado:
+        return None
+
+    pago = db.scalar(select(Pago).where(Pago.folio == normalizado))
+    if pago is None:
+        return None
+    return _ticket_desde_pago(db, pago)

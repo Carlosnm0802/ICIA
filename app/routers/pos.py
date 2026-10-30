@@ -102,6 +102,33 @@ def mostrar_pos(
     )
 
 
+def _respuesta_ticket(
+    request: Request,
+    ticket: thermal_printer.TicketData,
+    auto: bool,
+) -> HTMLResponse:
+    response = templates.TemplateResponse(
+        request=request,
+        name="ticket.html",
+        context={"ticket": ticket, "auto": auto},
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.get("/tickets/folio", response_class=HTMLResponse)
+def mostrar_ticket_por_folio(
+    request: Request,
+    folio: Annotated[str, Query(min_length=1, max_length=32)],
+    auto: Annotated[bool, Query()] = False,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    ticket = thermal_printer.obtener_ticket_por_folio(db, folio)
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado.")
+    return _respuesta_ticket(request, ticket, auto)
+
+
 @router.get("/tickets/{pago_id}", response_class=HTMLResponse)
 def mostrar_ticket(
     pago_id: int,
@@ -112,14 +139,7 @@ def mostrar_ticket(
     ticket = thermal_printer.obtener_ticket(db, pago_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado.")
-
-    response = templates.TemplateResponse(
-        request=request,
-        name="ticket.html",
-        context={"ticket": ticket, "auto": auto},
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    return _respuesta_ticket(request, ticket, auto)
 
 
 @router.post("/sesiones")

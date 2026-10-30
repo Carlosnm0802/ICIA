@@ -265,6 +265,35 @@ textarea {
   justify-content: flex-end;
 }
 
+.reprint-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reprint-form__label {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.reprint-form__input {
+  width: 9.5rem;
+  min-height: 48px;
+  padding: 0 0.75rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--slate-900);
+  text-transform: uppercase;
+}
+
+.reprint-form__input::placeholder {
+  color: var(--on-surface-variant);
+  text-transform: none;
+}
+
 .button {
   display: inline-flex;
   min-height: 48px;
@@ -1000,6 +1029,15 @@ textarea {
 @media (max-width: 560px) {
   .rail__brand-text {
     display: none;
+  }
+
+  .reprint-form {
+    width: 100%;
+  }
+
+  .reprint-form__input {
+    flex: 1 1 8rem;
+    width: auto;
   }
 
   .choice-grid,

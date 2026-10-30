@@ -167,6 +167,97 @@ def test_ticket_inexistente_devuelve_404(
     assert response.json()["detail"] == "Ticket no encontrado."
 
 
+def test_ticket_por_folio_reproduce_el_mismo_contenido(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    por_id = client.get(f"/pos/tickets/{resultado.pago_id}")
+    por_folio = client.get(
+        "/pos/tickets/folio",
+        params={"folio": resultado.folio},
+    )
+
+    assert por_folio.status_code == 200
+    assert por_folio.headers["cache-control"] == "no-store"
+    assert por_folio.text == por_id.text
+
+
+def test_ticket_por_folio_normaliza_el_folio(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    response = client.get(
+        "/pos/tickets/folio",
+        params={"folio": f"  {resultado.folio.lower()}  "},
+    )
+
+    assert response.status_code == 200
+    assert resultado.folio in response.text
+
+
+def test_ticket_por_folio_auto_impresion(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    automatico = client.get(
+        "/pos/tickets/folio",
+        params={"folio": resultado.folio, "auto": "1"},
+    )
+    manual = client.get(
+        "/pos/tickets/folio",
+        params={"folio": resultado.folio},
+    )
+
+    assert automatico.status_code == 200
+    assert 'id="ticket-auto-print"' in automatico.text
+    assert 'id="ticket-auto-print"' not in manual.text
+
+
+def test_ticket_por_folio_inexistente_devuelve_404(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = ticket_app
+
+    response = client.get(
+        "/pos/tickets/folio",
+        params={"folio": "REF-9999"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Ticket no encontrado."
+
+
+def test_ticket_por_folio_muestra_estado_cancelado(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    with factory.begin() as session:
+        pago = session.get(Pago, resultado.pago_id)
+        assert pago is not None
+        pago.estado = "cancelado"
+        pago.cancelado_en = "2026-10-29 12:00:00"
+
+    response = client.get(
+        "/pos/tickets/folio",
+        params={"folio": resultado.folio},
+    )
+
+    assert response.status_code == 200
+    assert "Cancelado" in response.text
+
+
 def test_ticket_respeta_ancho_configurado(
     ticket_app: tuple[TestClient, sessionmaker[Session]],
 ) -> None:
@@ -242,6 +333,31 @@ def test_ticket_css_se_sirve(
     assert ".ticket--58" in response.text
     assert ".ticket--80" in response.text
     assert ".ticket-actions" in response.text
+
+
+def test_app_css_incluye_formulario_reimpresion(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = ticket_app
+
+    response = client.get("/static/css/app.css")
+
+    assert response.status_code == 200
+    assert ".reprint-form" in response.text
+    assert ".reprint-form__input" in response.text
+
+
+def test_pos_incluye_formulario_reimpresion(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = ticket_app
+
+    response = client.get("/pos")
+
+    assert response.status_code == 200
+    assert 'action="/pos/tickets/folio"' in response.text
+    assert 'name="folio"' in response.text
+    assert 'name="auto" value="1"' in response.text
 
 
 def test_pos_incluye_iframe_de_ticket(
