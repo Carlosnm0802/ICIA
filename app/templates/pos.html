@@ -206,6 +206,15 @@
               <h3>{{ alumno.nombre }}</h3>
               <span class="pill pill--{{ alumno.estado }}">{{ alumno.etiqueta }}</span>
             </div>
+            {% if sesion.estado != "cancelada" %}
+              <button
+                type="button"
+                class="student-card__undo"
+                data-accion="deshacer"
+                aria-label="Deshacer asistencia de {{ alumno.nombre }}"
+                {% if alumno.estado not in ("pagado", "deuda") %}hidden{% endif %}
+              >Deshacer</button>
+            {% endif %}
           </article>
         {% else %}
           <p class="empty-state">Este grupo no tiene alumnos activos.</p>

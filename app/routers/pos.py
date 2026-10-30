@@ -43,6 +43,11 @@ class DeudaRequest(BaseModel):
     alumno_id: int = Field(gt=0)
 
 
+class DeshacerRequest(BaseModel):
+    sesion_id: int = Field(gt=0)
+    alumno_id: int = Field(gt=0)
+
+
 @router.get("", response_class=HTMLResponse)
 def mostrar_pos(
     request: Request,
@@ -227,6 +232,66 @@ def registrar_deuda(
         "ok": True,
         "deuda": {
             "asistencia_id": resultado.asistencia_id,
+            "alumno_id": resultado.alumno_id,
+            "alumno": resultado.alumno,
+            "grupo_id": resultado.grupo_id,
+            "grupo": resultado.grupo,
+            "sucursal_id": resultado.sucursal_id,
+            "sucursal": resultado.sucursal,
+            "sesion_id": resultado.sesion_id,
+            "sesion_fecha": resultado.sesion_fecha,
+            "monto_centavos": resultado.monto_centavos,
+            "monto": formato_mxn(resultado.monto_centavos),
+        },
+        "alumno": (
+            {
+                "id": alumno.id,
+                "estado": alumno.estado,
+                "etiqueta": alumno.etiqueta,
+            }
+            if alumno is not None
+            else None
+        ),
+        "resumen": {
+            "total": resumen.total,
+            "pendientes": resumen.pendientes,
+            "pagados": resumen.pagados,
+            "deudas": resumen.deudas,
+            "faltas": resumen.faltas,
+        },
+    }
+
+
+@router.post("/deshacer-asistencia")
+def deshacer_asistencia(
+    payload: DeshacerRequest,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        resultado = cashier_service.deshacer_asistencia(
+            db,
+            sesion_id=payload.sesion_id,
+            alumno_id=payload.alumno_id,
+        )
+    except cashier_service.CashierError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    alumnos, resumen = pos_service.listar_roster(
+        db,
+        resultado.grupo_id,
+        resultado.sesion_id,
+    )
+    alumno = next(
+        (item for item in alumnos if item.id == resultado.alumno_id),
+        None,
+    )
+
+    return {
+        "ok": True,
+        "deshecho": {
+            "tipo": resultado.tipo,
+            "pago_id": resultado.pago_id,
+            "folio": resultado.folio,
             "alumno_id": resultado.alumno_id,
             "alumno": resultado.alumno,
             "grupo_id": resultado.grupo_id,

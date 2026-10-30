@@ -624,6 +624,34 @@ textarea {
   }
 }
 
+.student-card__undo {
+  min-height: 36px;
+  margin-left: auto;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #fecdd3;
+  border-radius: var(--radius-md);
+  background: #fff1f2;
+  color: #be123c;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.student-card__undo:hover {
+  border-color: #fda4af;
+  background: #ffe4e6;
+}
+
+.student-card__undo:active {
+  transform: translateY(1.5px);
+}
+
+.student-card__undo[hidden] {
+  display: none;
+}
+
 .student-card__avatar {
   display: grid;
   width: 48px;

@@ -19,6 +19,7 @@ from app.models import (
 from app.services.folios import FolioError, siguiente_folio
 
 METODOS = {"efectivo", "transferencia"}
+MOTIVO_DESHACER = "Asistencia deshecha desde Cobro Express"
 
 
 class CashierError(RuntimeError):
@@ -45,6 +46,22 @@ class CobroResultado:
 @dataclass(frozen=True)
 class DeudaResultado:
     asistencia_id: int
+    alumno_id: int
+    alumno: str
+    grupo_id: int
+    grupo: str
+    sucursal_id: int
+    sucursal: str
+    sesion_id: int
+    sesion_fecha: str
+    monto_centavos: int
+
+
+@dataclass(frozen=True)
+class DeshacerResultado:
+    tipo: str
+    pago_id: int | None
+    folio: str | None
     alumno_id: int
     alumno: str
     grupo_id: int
@@ -207,6 +224,101 @@ def cobrar_sesion(
         db.rollback()
         raise CashierError(
             "No se pudo registrar el cobro. Intenta de nuevo."
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+
+def deshacer_asistencia(
+    db: Session,
+    *,
+    sesion_id: int,
+    alumno_id: int,
+) -> DeshacerResultado:
+    if db.in_transaction():
+        raise CashierError(
+            "La sesión de base de datos ya tiene una transacción abierta."
+        )
+
+    try:
+        db.execute(text("BEGIN IMMEDIATE"))
+
+        sesion = db.get(Sesion, sesion_id)
+        if sesion is None:
+            raise CashierError("La sesión no existe.")
+        if sesion.estado == "cancelada":
+            raise CashierError(
+                "No se puede deshacer una asistencia en una sesión cancelada."
+            )
+
+        grupo = db.get(Grupo, sesion.grupo_id)
+        if grupo is None:
+            raise CashierError("El grupo no existe.")
+
+        sucursal = db.get(Sucursal, grupo.sucursal_id)
+        if sucursal is None:
+            raise CashierError("La sucursal no existe.")
+
+        alumno = db.get(Alumno, alumno_id)
+        if alumno is None:
+            raise CashierError("El alumno no existe.")
+
+        asistencia = db.scalar(
+            select(Asistencia).where(
+                Asistencia.sesion_id == sesion.id,
+                Asistencia.alumno_id == alumno.id,
+                Asistencia.es_reposicion == 0,
+            )
+        )
+        if asistencia is None:
+            raise CashierError(
+                "El alumno no tiene asistencia registrada en esta sesión."
+            )
+        if asistencia.estado != "asistio":
+            raise CashierError("Solo se puede deshacer una asistencia.")
+
+        pago = None
+        if asistencia.pago_id is not None:
+            pago = db.get(Pago, asistencia.pago_id)
+            if pago is None:
+                raise CashierError("El pago de la asistencia no existe.")
+            if pago.estado == "cancelado":
+                raise CashierError("La asistencia ya fue deshecha.")
+            pago.estado = "cancelado"
+            pago.cancelado_en = _ahora_local()
+            pago.motivo_cancelacion = MOTIVO_DESHACER
+
+        monto = asistencia.precio_aplicado_centavos
+        if monto is None:
+            monto = grupo.precio_centavos
+
+        resultado = DeshacerResultado(
+            tipo="pago" if pago is not None else "deuda",
+            pago_id=pago.id if pago is not None else None,
+            folio=pago.folio if pago is not None else None,
+            alumno_id=alumno.id,
+            alumno=alumno.nombre,
+            grupo_id=grupo.id,
+            grupo=grupo.nombre,
+            sucursal_id=sucursal.id,
+            sucursal=sucursal.nombre,
+            sesion_id=sesion.id,
+            sesion_fecha=sesion.fecha,
+            monto_centavos=monto,
+        )
+
+        db.delete(asistencia)
+        db.flush()
+        db.commit()
+        return resultado
+    except CashierError:
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise CashierError(
+            "No se pudo deshacer la asistencia. Intenta de nuevo."
         ) from exc
     except Exception:
         db.rollback()

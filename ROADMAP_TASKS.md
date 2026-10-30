@@ -41,7 +41,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: ticket foliado con datos completos, nombre ICIA y sin diálogo de impresión.
 - [x] **Tarea 2.6** — Botón y ruta "Asistió sin pagar" que registre deuda en un clic.
   - Entregable: asistencia con `pago_id = NULL` visible en deudas.
-- [ ] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
+- [x] **Tarea 2.7** — Botón "Deshacer asistencia" que anule el pago sin borrar el folio.
   - Entregable: pago en estado `cancelado`, asistencia deshecha y auditoría conservada.
 - [ ] **Tarea 2.8** — Reimpresión de ticket por folio con los mismos datos.
   - Entregable: mismo folio y contenido que el original.
@@ -110,7 +110,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5 y 2.6 completadas**.
-- Siguiente tarea recomendada: **Tarea 2.7 — deshacer asistencia**.
+- Fase 2 en curso: **Tareas 2.1, 2.2, 2.3, 2.4, 2.5, 2.6 y 2.7 completadas**.
+- Siguiente tarea recomendada: **Tarea 2.8 — reimpresión de ticket por folio**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
