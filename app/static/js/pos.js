@@ -23,6 +23,7 @@
   let cobrando = false;
   let registrando = false;
   let deshaciendo = false;
+  let marcandoFalta = false;
   let tarjetaActual = null;
   let toastTimer = null;
 
@@ -133,6 +134,7 @@
     }
 
     actualizarBotonDeshacer(card);
+    actualizarBotonFalta(card);
     window.setTimeout(() => {
       card.classList.remove("student-card--pagado");
     }, 1200);
@@ -155,8 +157,33 @@
     }
 
     actualizarBotonDeshacer(card);
+    actualizarBotonFalta(card);
     window.setTimeout(() => {
       card.classList.remove("student-card--deuda");
+    }, 1200);
+  }
+
+  function marcarFaltaUI(card, alumno, falta) {
+    card.dataset.estado = "falto";
+    card.dataset.asistenciaId = falta.asistencia_id;
+    card.dataset.pagoId = falta.pago_id;
+    card.removeAttribute("role");
+    card.removeAttribute("aria-label");
+    card.removeAttribute("aria-busy");
+    card.tabIndex = -1;
+    card.classList.remove("student-card--cobrando");
+    card.classList.add("student-card--falto");
+
+    const pill = card.querySelector(".pill");
+    if (pill) {
+      pill.className = "pill pill--falto";
+      pill.textContent = alumno?.etiqueta || "Faltó";
+    }
+
+    actualizarBotonDeshacer(card);
+    actualizarBotonFalta(card);
+    window.setTimeout(() => {
+      card.classList.remove("student-card--falto");
     }, 1200);
   }
 
@@ -165,13 +192,24 @@
     if (!boton) {
       return;
     }
-    boton.hidden = !["pagado", "deuda"].includes(card.dataset.estado);
+    boton.hidden = !["pagado", "deuda", "falto"].includes(
+      card.dataset.estado,
+    );
+  }
+
+  function actualizarBotonFalta(card) {
+    const boton = card.querySelector('[data-accion="falta"]');
+    if (!boton) {
+      return;
+    }
+    boton.hidden = card.dataset.estado !== "pagado";
   }
 
   function marcarPendiente(card) {
     card.dataset.estado = "pendiente";
     delete card.dataset.folio;
     delete card.dataset.asistenciaId;
+    delete card.dataset.pagoId;
     card.removeAttribute("aria-busy");
     card.tabIndex = 0;
     card.setAttribute("role", "button");
@@ -183,6 +221,7 @@
       "student-card--cobrando",
       "student-card--pagado",
       "student-card--deuda",
+      "student-card--falto",
     );
 
     const pill = card.querySelector(".pill");
@@ -192,6 +231,7 @@
     }
 
     actualizarBotonDeshacer(card);
+    actualizarBotonFalta(card);
   }
 
   function mensajeError(data, status, accion = "cobrar") {
@@ -205,7 +245,13 @@
   }
 
   async function cobrar(card, metodoSolicitado = metodo) {
-    if (!card || cobrando || registrando || deshaciendo) {
+    if (
+      !card ||
+      cobrando ||
+      registrando ||
+      deshaciendo ||
+      marcandoFalta
+    ) {
       return;
     }
     if (card.dataset.estado !== "pendiente") {
@@ -277,7 +323,13 @@
   }
 
   async function registrarDeuda(card) {
-    if (!card || registrando || cobrando || deshaciendo) {
+    if (
+      !card ||
+      registrando ||
+      cobrando ||
+      deshaciendo ||
+      marcandoFalta
+    ) {
       return;
     }
     if (card.dataset.estado !== "pendiente") {
@@ -347,11 +399,96 @@
     }
   }
 
-  async function deshacerAsistencia(card) {
-    if (!card || deshaciendo || cobrando || registrando) {
+  async function marcarFalta(card) {
+    if (
+      !card ||
+      marcandoFalta ||
+      cobrando ||
+      registrando ||
+      deshaciendo
+    ) {
       return;
     }
-    if (!["pagado", "deuda"].includes(card.dataset.estado)) {
+    if (card.dataset.estado !== "pagado") {
+      mostrarToast("Solo se puede marcar falta a un alumno pagado.", "error");
+      return;
+    }
+
+    const alumnoId = Number(card.dataset.alumnoId);
+    if (!Number.isInteger(alumnoId) || alumnoId <= 0) {
+      return;
+    }
+
+    const nombre = card.querySelector("h3")?.textContent || "alumno";
+    if (
+      !window.confirm(
+        `¿Marcar a ${nombre} como falta? El pago se conserva y la clase quedará pendiente de reposición.`,
+      )
+    ) {
+      return;
+    }
+
+    marcandoFalta = true;
+    card.classList.add("student-card--cobrando");
+    card.setAttribute("aria-busy", "true");
+
+    try {
+      const response = await fetch("/pos/marcar-falta", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sesion_id: sesionId,
+          alumno_id: alumnoId,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(
+          mensajeError(data, response.status, "marcar la falta"),
+        );
+      }
+      if (!data.falta || !data.resumen) {
+        throw new Error(
+          "El servidor no confirmó la falta. Revisa la lista.",
+        );
+      }
+
+      marcarFaltaUI(card, data.alumno, data.falta);
+      actualizarResumen(data.resumen);
+      mostrarToast(
+        `Falta registrada · ${data.falta.alumno} · pendiente de reposición`,
+        "success",
+      );
+    } catch (error) {
+      card.classList.remove("student-card--cobrando");
+      card.removeAttribute("aria-busy");
+      let mensaje = "No se pudo marcar la falta.";
+      if (error instanceof TypeError) {
+        mensaje = "No se pudo conectar con el servidor local.";
+      } else if (error instanceof Error) {
+        mensaje = error.message;
+      }
+      mostrarToast(mensaje, "error");
+    } finally {
+      marcandoFalta = false;
+    }
+  }
+
+  async function deshacerAsistencia(card) {
+    if (
+      !card ||
+      deshaciendo ||
+      cobrando ||
+      registrando ||
+      marcandoFalta
+    ) {
+      return;
+    }
+    if (!["pagado", "deuda", "falto"].includes(card.dataset.estado)) {
       return;
     }
 
@@ -362,9 +499,11 @@
 
     const nombre = card.querySelector("h3")?.textContent || "alumno";
     const confirmacion =
-      card.dataset.estado === "pagado"
-        ? `¿Deshacer la asistencia de ${nombre}? El pago quedará cancelado y el folio se conservará.`
-        : `¿Eliminar la deuda de ${nombre}? La asistencia se borrará.`;
+      card.dataset.estado === "deuda"
+        ? `¿Eliminar la deuda de ${nombre}? La asistencia se borrará.`
+        : card.dataset.estado === "falto"
+          ? `¿Deshacer la falta de ${nombre}? El pago quedará cancelado y el folio se conservará.`
+          : `¿Deshacer la asistencia de ${nombre}? El pago quedará cancelado y el folio se conservará.`;
     if (!window.confirm(confirmacion)) {
       return;
     }
@@ -476,6 +615,14 @@
       undoButton.addEventListener("click", (event) => {
         event.stopPropagation();
         deshacerAsistencia(card);
+      });
+    }
+
+    const faltaButton = card.querySelector('[data-accion="falta"]');
+    if (faltaButton) {
+      faltaButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        marcarFalta(card);
       });
     }
   }

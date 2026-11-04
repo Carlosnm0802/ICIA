@@ -226,6 +226,15 @@
             <div class="student-card__body">
               <h3>{{ alumno.nombre }}</h3>
               <span class="pill pill--{{ alumno.estado }}">{{ alumno.etiqueta }}</span>
+              {% if sesion.estado != "cancelada" %}
+                <button
+                  type="button"
+                  class="student-card__falta"
+                  data-accion="falta"
+                  aria-label="Marcar falta de {{ alumno.nombre }}"
+                  {% if alumno.estado != "pagado" %}hidden{% endif %}
+                >Marcar falta</button>
+              {% endif %}
             </div>
             {% if sesion.estado != "cancelada" %}
               <button
@@ -233,7 +242,7 @@
                 class="student-card__undo"
                 data-accion="deshacer"
                 aria-label="Deshacer asistencia de {{ alumno.nombre }}"
-                {% if alumno.estado not in ("pagado", "deuda") %}hidden{% endif %}
+                {% if not alumno.puede_deshacer %}hidden{% endif %}
               >Deshacer</button>
             {% endif %}
           </article>

@@ -19,6 +19,10 @@ templates.env.filters["fecha"] = formato_fecha
 templates.env.globals["app_name"] = APP_NAME
 
 router = APIRouter(prefix="/deudas", tags=["deudas"])
+reposiciones_router = APIRouter(
+    prefix="/reposiciones",
+    tags=["reposiciones"],
+)
 
 
 @router.get("", response_class=HTMLResponse)
@@ -70,4 +74,59 @@ def cobrar_deuda(
         return RedirectResponse(url=destino, status_code=303)
 
     destino = f"/deudas?{urlencode({'cobrado': resultado.pago_id})}"
+    return RedirectResponse(url=destino, status_code=303)
+
+
+@reposiciones_router.get("", response_class=HTMLResponse)
+def mostrar_reposiciones(
+    request: Request,
+    registrada: Annotated[bool, Query()] = False,
+    error: Annotated[str | None, Query(max_length=200)] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    pendientes = reports.listar_reposiciones_pendientes(db)
+    sesiones = reports.listar_sesiones_destino(db)
+    opciones = {
+        item.asistencia_id: [
+            sesion
+            for sesion in sesiones
+            if sesion.grupo_id != item.grupo_id
+            and sesion.fecha >= item.fecha_falta
+        ]
+        for item in pendientes
+    }
+    response = templates.TemplateResponse(
+        request=request,
+        name="debts/repositions.html",
+        context={
+            "pendientes": pendientes,
+            "opciones": opciones,
+            "total_centavos": sum(
+                item.monto_centavos for item in pendientes
+            ),
+            "registrada": registrada,
+            "error": error,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@reposiciones_router.post("/{falta_id}/registrar", response_model=None)
+def registrar_reposicion(
+    falta_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, Form(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        cashier.registrar_reposicion(
+            db,
+            falta_id=falta_id,
+            sesion_destino_id=sesion_id,
+        )
+    except cashier.CashierError as exc:
+        destino = f"/reposiciones?{urlencode({'error': str(exc)})}"
+        return RedirectResponse(url=destino, status_code=303)
+
+    destino = f"/reposiciones?{urlencode({'registrada': '1'})}"
     return RedirectResponse(url=destino, status_code=303)

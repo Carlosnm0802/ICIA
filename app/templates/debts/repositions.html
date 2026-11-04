@@ -1,0 +1,119 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Reposiciones · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Reposiciones</p>
+    <h1>Reposiciones pendientes</h1>
+    <p class="page-head__meta">
+      {% if pendientes|length == 1 %}
+        1 clase pagada por reponer
+      {% else %}
+        {{ pendientes|length }} clases pagadas por reponer
+      {% endif %}
+      · Valor pagado {{ total_centavos|mxn }}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/deudas">Ver deudas</a>
+    <a class="button button--primary" href="/pos">Ir a Cobro Express</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if registrada %}
+  <div class="notice notice--success" role="status">
+    Reposición registrada. No se generó cobro nuevo.
+  </div>
+{% endif %}
+
+<section class="session-summary" aria-label="Resumen de reposiciones">
+  <div>
+    <span class="label">Pendientes</span>
+    <strong class="tabular">{{ pendientes|length }}</strong>
+  </div>
+  <div>
+    <span class="label">Valor ya pagado</span>
+    <strong class="tabular">{{ total_centavos|mxn }}</strong>
+  </div>
+  <div>
+    <span class="label">Cobro nuevo</span>
+    <strong class="tabular">{{ 0|mxn }}</strong>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="reposiciones-title">
+  <div class="section-head">
+    <h2 id="reposiciones-title">Clases por reponer</h2>
+    <span class="section-head__hint">Elige la sesión destino en otro grupo</span>
+  </div>
+
+  <div class="reposition-list">
+    {% for item in pendientes %}
+      {% set opciones_sesion = opciones[item.asistencia_id] %}
+      <article class="reposition-card">
+        <span class="reposition-card__avatar" aria-hidden="true">{{ item.alumno[:1] }}</span>
+        <div class="reposition-card__body">
+          <h3>{{ item.alumno }}</h3>
+          <p>
+            {{ item.sucursal }} · {{ item.grupo }}
+            · Falta del {{ item.fecha_falta|fecha }}
+          </p>
+          <p class="reposition-card__meta">
+            <span class="pill pill--pagado">Pagada</span>
+            <span>Folio <strong>{{ item.folio }}</strong></span>
+            <strong class="tabular">{{ item.monto_centavos|mxn }}</strong>
+          </p>
+        </div>
+        <div class="reposition-card__actions">
+          {% if opciones_sesion %}
+            <form
+              class="reposition-form"
+              method="post"
+              action="/reposiciones/{{ item.asistencia_id }}/registrar"
+            >
+              <label class="label" for="sesion-{{ item.asistencia_id }}">Sesión destino</label>
+              <div class="reposition-form__controls">
+                <select
+                  class="reposition-select"
+                  id="sesion-{{ item.asistencia_id }}"
+                  name="sesion_id"
+                  required
+                >
+                  <option value="">Selecciona una sesión</option>
+                  {% for sesion in opciones_sesion %}
+                    <option value="{{ sesion.id }}">
+                      {{ sesion.fecha|fecha }} · {{ sesion.sucursal }}
+                      · {{ sesion.grupo }}
+                      · {{ sesion.hora_inicio }}–{{ sesion.hora_fin }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <button class="button button--primary" type="submit">
+                  Registrar reposición
+                </button>
+              </div>
+            </form>
+          {% else %}
+            <p class="reposition-empty">
+              No hay sesiones disponibles en otros grupos.
+              Abre la sesión destino en <a href="/pos">Cobro Express</a>.
+            </p>
+          {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-panel">
+        <span class="empty-panel__icon" aria-hidden="true">✓</span>
+        <h2>Sin reposiciones pendientes</h2>
+        <p>Todas las faltas pagadas ya fueron repuestas.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

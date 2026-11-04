@@ -266,6 +266,7 @@ def test_rutas_protegidas_redirigen_al_login(
         "/dashboard",
         "/dashboard/recaudacion",
         "/deudas",
+        "/reposiciones",
         "/pos",
         "/pos/tickets/1",
     ):

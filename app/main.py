@@ -16,6 +16,10 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(auth.router)
 app.include_router(dashboard.router, dependencies=[Depends(requiere_sesion)])
 app.include_router(debts.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(
+    debts.reposiciones_router,
+    dependencies=[Depends(requiere_sesion)],
+)
 app.include_router(pos.router, dependencies=[Depends(requiere_sesion)])
 
 

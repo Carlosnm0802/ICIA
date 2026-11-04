@@ -32,6 +32,7 @@ class AlumnoRoster:
     nombre: str
     estado: str
     etiqueta: str
+    puede_deshacer: bool
 
 
 @dataclass(frozen=True)
@@ -213,12 +214,21 @@ def listar_roster(
     alumnos = []
     for alumno, asistencia, pago in filas:
         estado = _estado(asistencia, pago)
+        puede_deshacer = asistencia is not None and (
+            asistencia.estado == "asistio"
+            or (
+                asistencia.estado == "falto"
+                and pago is not None
+                and pago.estado == "vigente"
+            )
+        )
         alumnos.append(
             AlumnoRoster(
                 id=alumno.id,
                 nombre=alumno.nombre,
                 estado=estado,
                 etiqueta=ESTADOS[estado],
+                puede_deshacer=puede_deshacer,
             )
         )
     alumnos.sort(key=lambda alumno: clave_orden(alumno.nombre))

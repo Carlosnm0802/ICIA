@@ -27,6 +27,7 @@ from app.services.cashier import (
     cobrar_deuda,
     cobrar_sesion,
     deshacer_asistencia,
+    marcar_falta,
     registrar_deuda,
 )
 from app.services.folios import FolioError
@@ -1395,3 +1396,205 @@ def test_cobrar_deuda_rollback_si_falla_commit(
 
     assert _conteos(cashier_factory) == (0, 1)
     assert _contador(cashier_factory, sucursal_id) == 0
+
+
+def test_marcar_falta_conserva_pago_y_genera_pendiente(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        cobro = cobrar_sesion(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+            metodo="efectivo",
+        )
+    with cashier_factory() as session:
+        falta = marcar_falta(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    assert falta.pago_id == cobro.pago_id
+    assert falta.folio == "REF-0001"
+    assert falta.monto_centavos == 14000
+
+    with cashier_factory() as session:
+        asistencia = session.get(Asistencia, falta.asistencia_id)
+        assert asistencia is not None
+        assert asistencia.estado == "falto"
+        assert asistencia.pago_id == cobro.pago_id
+        pago = session.get(Pago, cobro.pago_id)
+        assert pago is not None
+        assert pago.estado == "vigente"
+        assert session.scalar(select(func.count()).select_from(Pago)) == 1
+        pendientes = session.execute(
+            text("SELECT COUNT(*) FROM v_reposiciones_pendientes")
+        ).scalar_one()
+        assert pendientes == 1
+
+    assert _contador(cashier_factory, sucursal_id) == 1
+
+
+def test_marcar_falta_rechaza_asistencia_sin_pago(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    _sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    with cashier_factory() as session:
+        with pytest.raises(CashierError, match="asistencia pagada"):
+            marcar_falta(
+                session,
+                sesion_id=sesion_id,
+                alumno_id=alumnos[0],
+            )
+
+    assert _conteos(cashier_factory) == (0, 1)
+
+
+def test_marcar_falta_rechaza_duplicado(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    _sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        cobrar_sesion(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+            metodo="efectivo",
+        )
+    with cashier_factory() as session:
+        marcar_falta(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    with cashier_factory() as session:
+        with pytest.raises(CashierError, match="ya está marcado"):
+            marcar_falta(
+                session,
+                sesion_id=sesion_id,
+                alumno_id=alumnos[0],
+            )
+
+    assert _conteos(cashier_factory) == (1, 1)
+
+
+def test_deshacer_falta_pagada_cancela_pago(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        cobro = cobrar_sesion(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+            metodo="efectivo",
+        )
+    with cashier_factory() as session:
+        marcar_falta(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+    with cashier_factory() as session:
+        resultado = deshacer_asistencia(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    assert resultado.tipo == "pago"
+    assert resultado.folio == "REF-0001"
+    with cashier_factory() as session:
+        pago = session.get(Pago, cobro.pago_id)
+        assert pago is not None
+        assert pago.estado == "cancelado"
+        assert session.scalar(select(func.count()).select_from(Asistencia)) == 0
+        pendientes = session.execute(
+            text("SELECT COUNT(*) FROM v_reposiciones_pendientes")
+        ).scalar_one()
+        assert pendientes == 0
+
+    assert _contador(cashier_factory, sucursal_id) == 1
+
+
+def test_api_marcar_falta_conserva_pago(
+    cashier_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = cashier_app
+    sucursal_id, sesion_id, alumno_id = _preparar_cobro(factory)
+    cobro = client.post(
+        "/pos/cobrar",
+        json={
+            "sesion_id": sesion_id,
+            "alumno_id": alumno_id,
+            "metodo": "efectivo",
+        },
+    )
+    assert cobro.status_code == 200
+    pago = cobro.json()["pago"]
+
+    response = client.post(
+        "/pos/marcar-falta",
+        json={"sesion_id": sesion_id, "alumno_id": alumno_id},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["ok"] is True
+    assert data["falta"]["pago_id"] == pago["id"]
+    assert data["falta"]["folio"] == "REF-0001"
+    assert data["alumno"]["estado"] == "falto"
+    assert data["resumen"]["faltas"] == 1
+    assert data["resumen"]["pagados"] == 0
+    assert _conteos(factory) == (1, 1)
+
+    with factory() as session:
+        pago_db = session.get(Pago, pago["id"])
+        assert pago_db is not None
+        assert pago_db.estado == "vigente"
+        asistencia = session.scalar(select(Asistencia))
+        assert asistencia is not None
+        assert asistencia.estado == "falto"
+
+    dashboard = client.get("/dashboard")
+    assert dashboard.status_code == 200
+    assert "$140.00" in dashboard.text
+
+
+def test_api_marcar_falta_rechaza_deuda(
+    cashier_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = cashier_app
+    _, sesion_id, alumno_id = _preparar_cobro(factory)
+    deuda = client.post(
+        "/pos/asistio-sin-pagar",
+        json={"sesion_id": sesion_id, "alumno_id": alumno_id},
+    )
+    assert deuda.status_code == 200
+
+    response = client.post(
+        "/pos/marcar-falta",
+        json={"sesion_id": sesion_id, "alumno_id": alumno_id},
+    )
+
+    assert response.status_code == 409
+    assert "asistencia pagada" in response.json()["detail"]
+    assert _conteos(factory) == (0, 1)

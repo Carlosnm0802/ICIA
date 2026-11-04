@@ -62,7 +62,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: gráfica funcional offline.
 - [x] **Tarea 3.3** — Módulo de deudas: listado de morosos con monto y botón de cobro rápido.
   - Entregable: cobrar deuda genera ticket y actualiza totales.
-- [ ] **Tarea 3.4** — Módulo de reposiciones pendientes y registro de reposición en otro grupo sin cobro nuevo.
+- [x] **Tarea 3.4** — Módulo de reposiciones pendientes y registro de reposición en otro grupo sin cobro nuevo.
   - Entregable: falta con pago se marca como repuesta y no altera el total cobrado.
 - [ ] **Tarea 3.5** — Pruebas de dashboard, deuda y reposición.
   - Entregable: `pytest` verde y totales consistentes.
@@ -113,8 +113,9 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - Fase 1 completada.
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
-- Fase 3 en curso: **Tareas 3.1, 3.2 y 3.3 completadas** (dashboard con KPI, gráfica local por sucursal y módulo de deudas con cobro rápido).
+- Fase 3 en curso: **Tareas 3.1, 3.2, 3.3 y 3.4 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido y reposiciones sin cobro nuevo).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Siguiente tarea recomendada: **Tarea 3.4 — reposiciones pendientes y registro sin cobro nuevo**.
+- Suite de pruebas: **162 passed**.
+- Siguiente tarea recomendada: **Tarea 3.5 — pruebas de dashboard, deuda y reposición**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

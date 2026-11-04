@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.orm import Session
 
-from app.models import Alumno, Pago, Sucursal
+from app.models import Alumno, Grupo, Pago, Sesion, Sucursal
 
 
 @dataclass(frozen=True)
@@ -43,6 +43,34 @@ class DeudaPendiente:
     sucursal_id: int
     sucursal: str
     monto_centavos: int
+
+
+@dataclass(frozen=True)
+class ReposicionPendiente:
+    asistencia_id: int
+    alumno_id: int
+    alumno: str
+    sesion_id: int
+    fecha_falta: str
+    grupo_id: int
+    grupo: str
+    sucursal_id: int
+    sucursal: str
+    pago_id: int
+    folio: str
+    monto_centavos: int
+
+
+@dataclass(frozen=True)
+class SesionDestino:
+    id: int
+    fecha: str
+    grupo_id: int
+    grupo: str
+    sucursal_id: int
+    sucursal: str
+    hora_inicio: str
+    hora_fin: str
 
 
 def rango_semana(hoy: date | None = None) -> tuple[date, date]:
@@ -182,6 +210,81 @@ def listar_deudas(db: Session) -> list[DeudaPendiente]:
             sucursal_id=int(fila["sucursal_id"]),
             sucursal=fila["sucursal"],
             monto_centavos=int(fila["monto_centavos"]),
+        )
+        for fila in filas
+    ]
+
+
+def listar_reposiciones_pendientes(
+    db: Session,
+) -> list[ReposicionPendiente]:
+    filas = db.execute(
+        text(
+            "SELECT "
+            "r.asistencia_id, r.alumno_id, r.alumno, "
+            "r.sesion_id, r.fecha_falta, "
+            "r.grupo_id, r.grupo, su.id AS sucursal_id, "
+            "su.nombre AS sucursal, "
+            "r.pago_id, r.folio, r.monto_centavos "
+            "FROM v_reposiciones_pendientes r "
+            "JOIN grupos g ON g.id = r.grupo_id "
+            "JOIN sucursales su ON su.id = g.sucursal_id "
+            "ORDER BY r.alumno COLLATE NOCASE, "
+            "r.fecha_falta, r.asistencia_id"
+        )
+    ).mappings().all()
+
+    return [
+        ReposicionPendiente(
+            asistencia_id=int(fila["asistencia_id"]),
+            alumno_id=int(fila["alumno_id"]),
+            alumno=fila["alumno"],
+            sesion_id=int(fila["sesion_id"]),
+            fecha_falta=fila["fecha_falta"],
+            grupo_id=int(fila["grupo_id"]),
+            grupo=fila["grupo"],
+            sucursal_id=int(fila["sucursal_id"]),
+            sucursal=fila["sucursal"],
+            pago_id=int(fila["pago_id"]),
+            folio=fila["folio"],
+            monto_centavos=int(fila["monto_centavos"]),
+        )
+        for fila in filas
+    ]
+
+
+def listar_sesiones_destino(db: Session) -> list[SesionDestino]:
+    filas = db.execute(
+        select(
+            Sesion.id,
+            Sesion.fecha,
+            Grupo.id,
+            Grupo.nombre,
+            Sucursal.id,
+            Sucursal.nombre,
+            Grupo.hora_inicio,
+            Grupo.hora_fin,
+        )
+        .join(Grupo, Grupo.id == Sesion.grupo_id)
+        .join(Sucursal, Sucursal.id == Grupo.sucursal_id)
+        .where(
+            Sesion.estado != "cancelada",
+            Grupo.activo == 1,
+            Sucursal.activa == 1,
+        )
+        .order_by(Sesion.fecha, Grupo.hora_inicio, Grupo.nombre)
+    ).all()
+
+    return [
+        SesionDestino(
+            id=int(fila[0]),
+            fecha=fila[1],
+            grupo_id=int(fila[2]),
+            grupo=fila[3],
+            sucursal_id=int(fila[4]),
+            sucursal=fila[5],
+            hora_inicio=fila[6],
+            hora_fin=fila[7],
         )
         for fila in filas
     ]
