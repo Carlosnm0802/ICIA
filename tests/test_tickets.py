@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core import config
 from app.core.database import build_engine, get_db
 from app.core.format import formato_fecha_hora
+from app.core.security import requiere_sesion
 from app.main import app
 from app.models import Alumno, Configuracion, Grupo, Pago, Sesion, Sucursal
 from app.services.cashier import cobrar_sesion
@@ -57,6 +58,7 @@ def ticket_app(
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[requiere_sesion] = lambda: None
     try:
         with TestClient(app) as client:
             yield client, factory
@@ -165,6 +167,85 @@ def test_ticket_inexistente_devuelve_404(
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Ticket no encontrado."
+
+
+def test_ticket_descarga_html_autocontenido_por_id(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    response = client.get(
+        f"/pos/tickets/{resultado.pago_id}",
+        params={"auto": "1", "descargar": "1"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert response.headers["content-disposition"] == (
+        f'attachment; filename="ICIA-{resultado.folio}.html"'
+    )
+    assert response.headers["cache-control"] == "no-store"
+    text = response.text
+    assert "ICIA" in text
+    assert resultado.folio in text
+    assert resultado.alumno in text
+    assert "$140.00" in text
+    assert ".ticket__brand" in text
+    assert "@media print" in text
+    assert "/static/css/ticket.css" not in text
+    assert 'id="ticket-print"' not in text
+    assert 'id="ticket-auto-print"' not in text
+
+
+def test_ticket_descarga_html_autocontenido_por_folio(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    response = client.get(
+        "/pos/tickets/folio",
+        params={"folio": resultado.folio.lower(), "descargar": "1"},
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == (
+        f'attachment; filename="ICIA-{resultado.folio}.html"'
+    )
+    assert ".ticket__brand" in response.text
+    assert "/static/css/ticket.css" not in response.text
+
+
+def test_ticket_descarga_inexistente_devuelve_404(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = ticket_app
+
+    response = client.get(
+        "/pos/tickets/999999",
+        params={"descargar": "1"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_ticket_normal_incluye_enlace_de_descarga(
+    ticket_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = ticket_app
+    _, grupo_id, alumno_id = _ref_ids(factory)
+    resultado = _cobrar(factory, grupo_id, alumno_id)
+
+    response = client.get(f"/pos/tickets/{resultado.pago_id}")
+
+    assert response.status_code == 200
+    assert (
+        f"/pos/tickets/{resultado.pago_id}?descargar=1" in response.text
+    )
+    assert "Descargar" in response.text
 
 
 def test_ticket_por_folio_reproduce_el_mismo_contenido(
@@ -356,6 +437,8 @@ def test_pos_incluye_formulario_reimpresion(
 
     assert response.status_code == 200
     assert 'action="/pos/tickets/folio"' in response.text
+    assert 'formaction="/pos/tickets/folio?descargar=1"' in response.text
+    assert "Descargar" in response.text
     assert 'name="folio"' in response.text
     assert 'name="auto" value="1"' in response.text
 

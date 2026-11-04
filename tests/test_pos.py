@@ -11,6 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.database import build_engine, get_db
+from app.core.security import requiere_sesion
 from app.main import app
 from app.models import Alumno, Asistencia, Grupo, Pago, Sesion, Sucursal
 from app.services.pos import clave_orden
@@ -45,6 +46,7 @@ def pos_app(
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[requiere_sesion] = lambda: None
     try:
         with TestClient(app) as client:
             yield client, factory
