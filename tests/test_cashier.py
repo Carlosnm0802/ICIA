@@ -24,6 +24,7 @@ from app.models import (
 )
 from app.services.cashier import (
     CashierError,
+    cobrar_deuda,
     cobrar_sesion,
     deshacer_asistencia,
     registrar_deuda,
@@ -1184,3 +1185,213 @@ def test_api_deshacer_duplicado(
 
     assert response.status_code == 409
     assert "no tiene asistencia" in response.json()["detail"]
+
+
+def test_cobrar_deuda_crea_pago_y_actualiza_asistencia(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        deuda = registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    with cashier_factory() as session:
+        resultado = cobrar_deuda(
+            session,
+            asistencia_id=deuda.asistencia_id,
+            metodo="efectivo",
+        )
+
+    assert resultado.folio == "REF-0001"
+    assert resultado.monto_centavos == 14000
+    assert resultado.metodo == "efectivo"
+    assert resultado.asistencia_id == deuda.asistencia_id
+
+    with cashier_factory() as session:
+        pago = session.scalar(select(Pago))
+        assert pago is not None
+        assert pago.folio == "REF-0001"
+        assert pago.alumno_id == alumnos[0]
+        assert pago.sucursal_id == sucursal_id
+        assert pago.tipo == "sesion"
+        assert pago.monto_centavos == 14000
+        assert pago.metodo == "efectivo"
+        assert pago.estado == "vigente"
+
+        asistencia = session.get(Asistencia, deuda.asistencia_id)
+        assert asistencia is not None
+        assert asistencia.pago_id == pago.id
+        assert asistencia.precio_aplicado_centavos == 14000
+        deudas = session.execute(
+            text("SELECT COUNT(*) FROM v_deudas")
+        ).scalar_one()
+        assert deudas == 0
+
+    assert _contador(cashier_factory, sucursal_id) == 1
+
+
+def test_cobrar_deuda_congela_precio_de_la_asistencia(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    _sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        deuda = registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    with cashier_factory.begin() as session:
+        grupo = session.get(Grupo, grupo_id)
+        assert grupo is not None
+        grupo.precio_centavos = 16000
+
+    with cashier_factory() as session:
+        resultado = cobrar_deuda(
+            session,
+            asistencia_id=deuda.asistencia_id,
+            metodo="transferencia",
+        )
+
+    assert resultado.monto_centavos == 14000
+    assert resultado.metodo == "transferencia"
+
+
+def test_cobrar_deuda_rechaza_doble_cobro(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        deuda = registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+    with cashier_factory() as session:
+        cobrar_deuda(
+            session,
+            asistencia_id=deuda.asistencia_id,
+            metodo="efectivo",
+        )
+
+    with cashier_factory() as session:
+        with pytest.raises(CashierError, match="ya fue cobrada"):
+            cobrar_deuda(
+                session,
+                asistencia_id=deuda.asistencia_id,
+                metodo="efectivo",
+            )
+
+    assert _conteos(cashier_factory) == (1, 1)
+    assert _contador(cashier_factory, sucursal_id) == 1
+
+
+def test_cobrar_deuda_permite_pago_anterior_cancelado(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+
+    with cashier_factory() as session:
+        deuda = registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    with cashier_factory.begin() as session:
+        pago_anterior = Pago(
+            folio="REF-0001",
+            alumno_id=alumnos[0],
+            sucursal_id=sucursal_id,
+            tipo="sesion",
+            monto_centavos=14000,
+            metodo="efectivo",
+            fecha="2026-01-01 10:00:00",
+            estado="cancelado",
+            cancelado_en="2026-01-01 11:00:00",
+        )
+        session.add(pago_anterior)
+        session.flush()
+        asistencia = session.get(Asistencia, deuda.asistencia_id)
+        assert asistencia is not None
+        asistencia.pago_id = pago_anterior.id
+        contador = session.get(FolioContador, sucursal_id)
+        assert contador is not None
+        contador.ultimo_consecutivo = 1
+
+    with cashier_factory() as session:
+        resultado = cobrar_deuda(
+            session,
+            asistencia_id=deuda.asistencia_id,
+            metodo="efectivo",
+        )
+
+    assert resultado.folio == "REF-0002"
+
+    with cashier_factory() as session:
+        pagos = list(session.scalars(select(Pago).order_by(Pago.id)))
+        assert [pago.estado for pago in pagos] == ["cancelado", "vigente"]
+        asistencia = session.get(Asistencia, deuda.asistencia_id)
+        assert asistencia is not None
+        assert asistencia.pago_id == pagos[1].id
+
+
+def test_cobrar_deuda_rechaza_metodo_invalido_y_deuda_inexistente(
+    cashier_factory: sessionmaker[Session],
+) -> None:
+    with cashier_factory() as session:
+        with pytest.raises(CashierError, match="Método de pago inválido"):
+            cobrar_deuda(
+                session,
+                asistencia_id=1,
+                metodo="tarjeta",
+            )
+        with pytest.raises(CashierError, match="deuda no existe"):
+            cobrar_deuda(
+                session,
+                asistencia_id=999999,
+                metodo="efectivo",
+            )
+
+
+def test_cobrar_deuda_rollback_si_falla_commit(
+    cashier_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sucursal_id, grupo_id, alumnos = _ref_ids(cashier_factory)
+    sesion_id = _create_session(cashier_factory, grupo_id)
+    with cashier_factory() as session:
+        deuda = registrar_deuda(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumnos[0],
+        )
+
+    session = cashier_factory()
+
+    def fallar_commit() -> None:
+        raise RuntimeError("fallo simulado")
+
+    monkeypatch.setattr(session, "commit", fallar_commit)
+    try:
+        with pytest.raises(RuntimeError, match="fallo simulado"):
+            cobrar_deuda(
+                session,
+                asistencia_id=deuda.asistencia_id,
+                metodo="efectivo",
+            )
+    finally:
+        session.close()
+
+    assert _conteos(cashier_factory) == (0, 1)
+    assert _contador(cashier_factory, sucursal_id) == 0

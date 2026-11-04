@@ -31,6 +31,20 @@ class RecaudacionSucursal:
     tickets: int
 
 
+@dataclass(frozen=True)
+class DeudaPendiente:
+    asistencia_id: int
+    alumno_id: int
+    alumno: str
+    sesion_id: int
+    fecha_sesion: str
+    grupo_id: int
+    grupo: str
+    sucursal_id: int
+    sucursal: str
+    monto_centavos: int
+
+
 def rango_semana(hoy: date | None = None) -> tuple[date, date]:
     fecha = hoy or date.today()
     return fecha - timedelta(days=fecha.weekday()), fecha
@@ -135,6 +149,39 @@ def recaudacion_por_sucursal(
             prefijo_folio=fila.prefijo_folio,
             total_centavos=int(fila.total_centavos),
             tickets=int(fila.tickets),
+        )
+        for fila in filas
+    ]
+
+
+def listar_deudas(db: Session) -> list[DeudaPendiente]:
+    filas = db.execute(
+        text(
+            "SELECT "
+            "d.asistencia_id, d.alumno_id, d.alumno, "
+            "d.sesion_id, d.fecha_sesion, "
+            "d.grupo_id, d.grupo, d.sucursal_id, d.sucursal, "
+            "d.monto_centavos "
+            "FROM v_deudas d "
+            "JOIN asistencias a ON a.id = d.asistencia_id "
+            "WHERE a.es_reposicion = 0 "
+            "ORDER BY d.alumno COLLATE NOCASE, "
+            "d.fecha_sesion, d.asistencia_id"
+        )
+    ).mappings().all()
+
+    return [
+        DeudaPendiente(
+            asistencia_id=int(fila["asistencia_id"]),
+            alumno_id=int(fila["alumno_id"]),
+            alumno=fila["alumno"],
+            sesion_id=int(fila["sesion_id"]),
+            fecha_sesion=fila["fecha_sesion"],
+            grupo_id=int(fila["grupo_id"]),
+            grupo=fila["grupo"],
+            sucursal_id=int(fila["sucursal_id"]),
+            sucursal=fila["sucursal"],
+            monto_centavos=int(fila["monto_centavos"]),
         )
         for fila in filas
     ]

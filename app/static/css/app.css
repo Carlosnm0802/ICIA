@@ -466,6 +466,65 @@ textarea {
   line-height: 1.5;
 }
 
+.debt-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.debt-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 84px;
+  padding: var(--space-md);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.debt-card__avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.debt-card__body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.debt-card__body p {
+  margin-top: 0.2rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.debt-card__amount {
+  color: #b45309;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.debt-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.debt-action {
+  min-width: 8.5rem;
+}
+
 .dashboard-shortcut__body {
   display: flex;
   flex-wrap: wrap;
@@ -670,6 +729,11 @@ textarea {
 .notice--danger {
   background: #fff1f2;
   color: #be123c;
+}
+
+.notice--success {
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .counter-row {
@@ -1244,6 +1308,18 @@ textarea {
   .page-head__actions {
     justify-content: flex-start;
   }
+
+  .debt-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .debt-card__actions {
+    grid-column: 1 / -1;
+  }
+
+  .debt-action {
+    flex: 1;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1267,6 +1343,23 @@ textarea {
 
   .chart-frame {
     height: 260px;
+  }
+
+  .debt-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .debt-card__amount {
+    grid-column: 1 / -1;
+    font-size: 1.5rem;
+  }
+
+  .debt-card__actions {
+    flex-direction: column;
+  }
+
+  .debt-action {
+    width: 100%;
   }
 
   .session-bar,

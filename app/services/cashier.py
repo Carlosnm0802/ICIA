@@ -74,6 +74,24 @@ class DeshacerResultado:
 
 
 @dataclass(frozen=True)
+class CobroDeudaResultado:
+    pago_id: int
+    folio: str
+    asistencia_id: int
+    alumno_id: int
+    alumno: str
+    grupo_id: int
+    grupo: str
+    sucursal_id: int
+    sucursal: str
+    sesion_id: int
+    sesion_fecha: str
+    monto_centavos: int
+    metodo: str
+    fecha: str
+
+
+@dataclass(frozen=True)
 class _Contexto:
     sesion: Sesion
     grupo: Grupo
@@ -384,6 +402,108 @@ def registrar_deuda(
         db.rollback()
         raise CashierError(
             "No se pudo registrar la deuda. Intenta de nuevo."
+        ) from exc
+    except Exception:
+        db.rollback()
+        raise
+
+
+def cobrar_deuda(
+    db: Session,
+    *,
+    asistencia_id: int,
+    metodo: str,
+) -> CobroDeudaResultado:
+    if metodo not in METODOS:
+        raise CashierError("Método de pago inválido.")
+    if db.in_transaction():
+        raise CashierError(
+            "La sesión de base de datos ya tiene una transacción abierta."
+        )
+
+    try:
+        db.execute(text("BEGIN IMMEDIATE"))
+
+        asistencia = db.get(Asistencia, asistencia_id)
+        if asistencia is None:
+            raise CashierError("La deuda no existe.")
+        if asistencia.estado != "asistio" or asistencia.es_reposicion != 0:
+            raise CashierError("Esta asistencia no genera una deuda.")
+
+        if asistencia.pago_id is not None:
+            pago_actual = db.get(Pago, asistencia.pago_id)
+            if pago_actual is None:
+                raise CashierError("El pago de la deuda no existe.")
+            if pago_actual.estado == "vigente":
+                raise CashierError("La deuda ya fue cobrada.")
+
+        sesion = db.get(Sesion, asistencia.sesion_id)
+        if sesion is None:
+            raise CashierError("La sesión de la deuda no existe.")
+        grupo = db.get(Grupo, sesion.grupo_id)
+        if grupo is None:
+            raise CashierError("El grupo de la deuda no existe.")
+        sucursal = db.get(Sucursal, grupo.sucursal_id)
+        if sucursal is None:
+            raise CashierError("La sucursal de la deuda no existe.")
+        alumno = db.get(Alumno, asistencia.alumno_id)
+        if alumno is None:
+            raise CashierError("El alumno de la deuda no existe.")
+
+        monto = asistencia.precio_aplicado_centavos
+        if monto is None:
+            monto = grupo.precio_centavos
+
+        try:
+            folio = siguiente_folio(db, sucursal.id)
+        except FolioError as exc:
+            raise CashierError(str(exc)) from exc
+
+        fecha = _ahora_local()
+        pago = Pago(
+            folio=folio,
+            alumno_id=alumno.id,
+            sucursal_id=sucursal.id,
+            tipo="sesion",
+            monto_centavos=monto,
+            metodo=metodo,
+            fecha=fecha,
+            estado="vigente",
+        )
+        db.add(pago)
+        db.flush()
+
+        asistencia.pago_id = pago.id
+        if asistencia.precio_aplicado_centavos is None:
+            asistencia.precio_aplicado_centavos = monto
+        db.flush()
+
+        resultado = CobroDeudaResultado(
+            pago_id=pago.id,
+            folio=folio,
+            asistencia_id=asistencia.id,
+            alumno_id=alumno.id,
+            alumno=alumno.nombre,
+            grupo_id=grupo.id,
+            grupo=grupo.nombre,
+            sucursal_id=sucursal.id,
+            sucursal=sucursal.nombre,
+            sesion_id=sesion.id,
+            sesion_fecha=sesion.fecha,
+            monto_centavos=monto,
+            metodo=metodo,
+            fecha=fecha,
+        )
+
+        db.commit()
+        return resultado
+    except CashierError:
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise CashierError(
+            "No se pudo cobrar la deuda. Intenta de nuevo."
         ) from exc
     except Exception:
         db.rollback()

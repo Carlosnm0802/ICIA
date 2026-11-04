@@ -1,0 +1,100 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Deudas · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Deudas</p>
+    <h1>Deudas pendientes</h1>
+    <p class="page-head__meta">
+      {% if deudas|length == 1 %}
+        1 asistencia sin pago
+      {% else %}
+        {{ deudas|length }} asistencias sin pago
+      {% endif %}
+      · Total {{ total_centavos|mxn }}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--primary" href="/pos">Ir a Cobro Express</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if ticket %}
+  <div class="notice notice--success" role="status">
+    Deuda cobrada · Folio <strong>{{ ticket.folio }}</strong>
+    · {{ ticket.alumno }} · {{ ticket.monto_centavos|mxn }}
+    · <a href="/pos/tickets/{{ ticket.pago_id }}">Ver ticket</a>
+  </div>
+  <iframe
+    class="ticket-frame"
+    title="Ticket {{ ticket.folio }}"
+    src="/pos/tickets/{{ ticket.pago_id }}?auto=1"
+    aria-hidden="true"
+    tabindex="-1"
+  ></iframe>
+{% endif %}
+
+<section class="session-summary" aria-label="Resumen de deudas">
+  <div>
+    <span class="label">Total pendiente</span>
+    <strong class="tabular">{{ total_centavos|mxn }}</strong>
+  </div>
+  <div>
+    <span class="label">Deudas</span>
+    <strong class="tabular">{{ deudas|length }}</strong>
+  </div>
+  <div>
+    <span class="label">Cobro</span>
+    <strong>Un ticket por deuda</strong>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="deudas-title">
+  <div class="section-head">
+    <h2 id="deudas-title">Pendientes de pago</h2>
+    <span class="section-head__hint">Elige el método para cobrar</span>
+  </div>
+
+  <div class="debt-list">
+    {% for deuda in deudas %}
+      <article class="debt-card">
+        <span class="debt-card__avatar" aria-hidden="true">{{ deuda.alumno[:1] }}</span>
+        <div class="debt-card__body">
+          <h3>{{ deuda.alumno }}</h3>
+          <p>
+            {{ deuda.sucursal }} · {{ deuda.grupo }}
+            · Sesión del {{ deuda.fecha_sesion|fecha }}
+          </p>
+        </div>
+        <strong class="debt-card__amount tabular">{{ deuda.monto_centavos|mxn }}</strong>
+        <div class="debt-card__actions">
+          <form method="post" action="/deudas/{{ deuda.asistencia_id }}/cobrar">
+            <input type="hidden" name="metodo" value="efectivo">
+            <button class="button button--primary debt-action" type="submit">
+              Efectivo
+            </button>
+          </form>
+          <form method="post" action="/deudas/{{ deuda.asistencia_id }}/cobrar">
+            <input type="hidden" name="metodo" value="transferencia">
+            <button class="button button--ghost debt-action" type="submit">
+              Transferencia
+            </button>
+          </form>
+        </div>
+      </article>
+    {% else %}
+      <div class="empty-panel">
+        <span class="empty-panel__icon" aria-hidden="true">✓</span>
+        <h2>Sin deudas pendientes</h2>
+        <p>Todas las asistencias tienen un pago vigente.</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

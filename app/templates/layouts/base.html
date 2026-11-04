@@ -34,6 +34,14 @@
           <span class="rail__icon" aria-hidden="true">▣</span>
           <span>Cobro Express</span>
         </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/deudas') %} rail__link--active{% endif %}"
+          href="/deudas"
+          {% if request.url.path.startswith('/deudas') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▥</span>
+          <span>Deudas</span>
+        </a>
       </nav>
       <form class="rail__logout-form" method="post" action="/logout">
         <button class="rail__logout" type="submit">Cerrar sesión</button>
