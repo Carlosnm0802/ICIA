@@ -1,34 +1,34 @@
 from pathlib import Path
+from urllib.parse import urlencode
 
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import APP_NAME
-from app.routers import pos
+from app.core.security import NoAutenticado, requiere_sesion
+from app.routers import auth, pos
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 app = FastAPI(title=APP_NAME)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-app.include_router(pos.router)
+app.include_router(auth.router)
+app.include_router(pos.router, dependencies=[Depends(requiere_sesion)])
 
 
-@app.get("/", response_class=HTMLResponse)
-def home() -> str:
-    return (
-        "<!doctype html>"
-        '<html lang="es">'
-        "<head>"
-        '<meta charset="utf-8">'
-        f"<title>{APP_NAME}</title>"
-        "</head>"
-        "<body>"
-        f"<h1>{APP_NAME}</h1>"
-        '<p><a href="/pos">Abrir Cobro Express</a></p>'
-        "</body>"
-        "</html>"
-    )
+@app.exception_handler(NoAutenticado)
+async def _redirigir_login(
+    _request: Request,
+    exc: NoAutenticado,
+) -> RedirectResponse:
+    destino = f"/login?{urlencode({'next': exc.next_url})}"
+    return RedirectResponse(url=destino, status_code=303)
+
+
+@app.get("/", dependencies=[Depends(requiere_sesion)])
+def home() -> RedirectResponse:
+    return RedirectResponse(url="/pos", status_code=303)
 
 
 @app.get("/health")

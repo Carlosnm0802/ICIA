@@ -5,6 +5,7 @@ from app.core.config import (
     DATA_DIR,
     DATABASE_PATH,
     PHOTOS_DIR,
+    SESSION_HOURS,
     TICKET_ANCHO_MM,
 )
 
@@ -27,3 +28,7 @@ def test_database_path_uses_sqlite_file() -> None:
 
 def test_ticket_width_is_supported() -> None:
     assert TICKET_ANCHO_MM in (58, 80)
+
+
+def test_session_hours_is_valid() -> None:
+    assert 1 <= SESSION_HOURS <= 168

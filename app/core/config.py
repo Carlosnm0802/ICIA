@@ -19,6 +19,18 @@ def _ticket_width() -> int:
 TICKET_ANCHO_MM = _ticket_width()
 
 
+def _session_hours() -> int:
+    valor = os.getenv("ICIA_SESSION_HOURS", "12")
+    try:
+        horas = int(valor)
+    except ValueError:
+        return 12
+    return horas if 1 <= horas <= 168 else 12
+
+
+SESSION_HOURS = _session_hours()
+
+
 def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent

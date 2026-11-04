@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.core import config
 from app.core.database import build_engine, get_db
 from app.core.format import formato_fecha_hora
+from app.core.security import requiere_sesion
 from app.main import app
 from app.models import Alumno, Configuracion, Grupo, Pago, Sesion, Sucursal
 from app.services.cashier import cobrar_sesion
@@ -57,6 +58,7 @@ def ticket_app(
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[requiere_sesion] = lambda: None
     try:
         with TestClient(app) as client:
             yield client, factory
