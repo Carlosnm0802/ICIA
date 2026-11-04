@@ -47,6 +47,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: mismo folio y contenido que el original.
 - [x] **Tarea 2.9** — Implementar `auth.py` con contraseña hasheada y sesión local, mostrando `ICIA` en el login.
   - Entregable: acceso protegido al sistema con identidad ICIA visible.
+- [x] **Tarea 2.10** — Descarga de ticket en HTML autocontenido por ID y por folio.
+  - Entregable: ticket descargable desde la vista del ticket y desde el formulario del POS.
 
 **Criterio de aceptación Fase 2:** simulación de cobro a 10 alumnos consecutivos en menos de 30 segundos, con tickets generados, deuda y anulación funcionando, folios únicos y nombre ICIA visible en login y tickets.
 
@@ -110,7 +112,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 ## Estado actual
 
 - Fase 1 completada.
-- Fase 2 completada: **Tareas 2.1 a 2.9 completadas**.
+- Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Siguiente tarea recomendada: **Tarea 3.1 — dashboard con KPI**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

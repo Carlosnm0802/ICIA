@@ -41,6 +41,11 @@
       >
       <input type="hidden" name="auto" value="1">
       <button class="button button--ghost" type="submit">Reimprimir</button>
+      <button
+        class="button button--ghost"
+        type="submit"
+        formaction="/pos/tickets/folio?descargar=1"
+      >Descargar</button>
     </form>
     {% if grupo %}
       <a class="button button--ghost" href="/pos?sucursal_id={{ sucursal.id }}">Cambiar grupo</a>

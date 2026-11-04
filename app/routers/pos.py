@@ -21,6 +21,8 @@ from app.services import pos as pos_service
 from app.services import thermal_printer
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
+TICKET_CSS = (STATIC_DIR / "css" / "ticket.css").read_text(encoding="utf-8")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.filters["mxn"] = formato_mxn
 templates.env.filters["fecha"] = formato_fecha
@@ -106,13 +108,23 @@ def _respuesta_ticket(
     request: Request,
     ticket: thermal_printer.TicketData,
     auto: bool,
+    descargar: bool = False,
 ) -> HTMLResponse:
     response = templates.TemplateResponse(
         request=request,
         name="ticket.html",
-        context={"ticket": ticket, "auto": auto},
+        context={
+            "ticket": ticket,
+            "auto": auto and not descargar,
+            "descargar": descargar,
+            "css_ticket": TICKET_CSS if descargar else "",
+        },
     )
     response.headers["Cache-Control"] = "no-store"
+    if descargar:
+        response.headers["Content-Disposition"] = (
+            f'attachment; filename="{APP_NAME}-{ticket.folio}.html"'
+        )
     return response
 
 
@@ -121,12 +133,13 @@ def mostrar_ticket_por_folio(
     request: Request,
     folio: Annotated[str, Query(min_length=1, max_length=32)],
     auto: Annotated[bool, Query()] = False,
+    descargar: Annotated[bool, Query()] = False,
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     ticket = thermal_printer.obtener_ticket_por_folio(db, folio)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado.")
-    return _respuesta_ticket(request, ticket, auto)
+    return _respuesta_ticket(request, ticket, auto, descargar)
 
 
 @router.get("/tickets/{pago_id}", response_class=HTMLResponse)
@@ -134,12 +147,13 @@ def mostrar_ticket(
     pago_id: int,
     request: Request,
     auto: Annotated[bool, Query()] = False,
+    descargar: Annotated[bool, Query()] = False,
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     ticket = thermal_printer.obtener_ticket(db, pago_id)
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket no encontrado.")
-    return _respuesta_ticket(request, ticket, auto)
+    return _respuesta_ticket(request, ticket, auto, descargar)
 
 
 @router.post("/sesiones")

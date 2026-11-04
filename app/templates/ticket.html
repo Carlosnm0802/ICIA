@@ -4,7 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ticket {{ ticket.folio }} · {{ app_name }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='css/ticket.css') }}">
+  {% if descargar %}
+    <style>{{ css_ticket|safe }}</style>
+  {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/ticket.css') }}">
+  {% endif %}
   <style>
     @page {
       size: {{ ticket.ancho_mm }}mm auto;
@@ -91,24 +95,27 @@
     </footer>
   </main>
 
-  <div class="ticket-actions">
-    <button type="button" id="ticket-print">Imprimir</button>
-    <a href="/pos">Volver al cobro</a>
-  </div>
+  {% if not descargar %}
+    <div class="ticket-actions">
+      <button type="button" id="ticket-print">Imprimir</button>
+      <a href="/pos/tickets/{{ ticket.pago_id }}?descargar=1" download>Descargar</a>
+      <a href="/pos">Volver al cobro</a>
+    </div>
 
-  <script>
-    document.getElementById("ticket-print")?.addEventListener("click", () => window.print());
-  </script>
-  {% if auto %}
-    <script id="ticket-auto-print">
-      window.addEventListener("load", () => {
-        if (document.fonts && document.fonts.ready) {
-          document.fonts.ready.then(() => window.print());
-        } else {
-          window.print();
-        }
-      });
+    <script>
+      document.getElementById("ticket-print")?.addEventListener("click", () => window.print());
     </script>
+    {% if auto %}
+      <script id="ticket-auto-print">
+        window.addEventListener("load", () => {
+          if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => window.print());
+          } else {
+            window.print();
+          }
+        });
+      </script>
+    {% endif %}
   {% endif %}
 </body>
 </html>

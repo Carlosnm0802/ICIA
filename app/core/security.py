@@ -129,6 +129,7 @@ def destino_seguro(next_url: str | None) -> str:
 
 def requiere_sesion(request: Request, db: Session = Depends(get_db)) -> None:
     password_hash = obtener_password_hash(db)
+    db.rollback()
     if sesion_valida(request.cookies.get(SESSION_COOKIE), password_hash):
         return
 
