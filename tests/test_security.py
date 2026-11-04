@@ -28,9 +28,9 @@ def test_token_sesion_valido_expirado_y_manipulado() -> None:
 
 
 def test_destino_seguro_solo_acepta_rutas_locales() -> None:
-    assert security.destino_seguro(None) == "/pos"
-    assert security.destino_seguro("") == "/pos"
+    assert security.destino_seguro(None) == "/dashboard"
+    assert security.destino_seguro("") == "/dashboard"
     assert security.destino_seguro("/pos?sucursal_id=1") == "/pos?sucursal_id=1"
-    assert security.destino_seguro("https://ejemplo.com") == "/pos"
-    assert security.destino_seguro("//ejemplo.com") == "/pos"
-    assert security.destino_seguro("/\\ejemplo.com") == "/pos"
+    assert security.destino_seguro("https://ejemplo.com") == "/dashboard"
+    assert security.destino_seguro("//ejemplo.com") == "/dashboard"
+    assert security.destino_seguro("/\\ejemplo.com") == "/dashboard"

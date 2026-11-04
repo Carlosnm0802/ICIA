@@ -145,7 +145,7 @@ def test_aceptacion_fase2_completa(
         follow_redirects=False,
     )
     assert setup.status_code == 303
-    assert setup.headers["location"] == "/pos"
+    assert setup.headers["location"] == "/dashboard"
 
     sesion_id = _abrir_sesion(client, factory, grupo_id)
 

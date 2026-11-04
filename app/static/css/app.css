@@ -376,6 +376,99 @@ textarea {
   padding: var(--space-md) var(--space-lg);
 }
 
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: 1px solid var(--slate-200);
+  border-top: 4px solid var(--primary-container);
+  border-radius: var(--radius-xl);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.kpi-card__label {
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kpi-card__value {
+  color: var(--on-surface);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.kpi-card__hint {
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.kpi-card--primary {
+  border-top-color: var(--primary-container);
+}
+
+.kpi-card--primary .kpi-card__value {
+  color: var(--primary);
+}
+
+.kpi-card--week {
+  border-top-color: var(--secondary-container);
+}
+
+.kpi-card--week .kpi-card__value {
+  color: var(--secondary);
+}
+
+.kpi-card--debt {
+  border-top-color: var(--amber);
+}
+
+.kpi-card--debt .kpi-card__value {
+  color: #b45309;
+}
+
+.kpi-card--students {
+  border-top-color: var(--tertiary-fixed);
+}
+
+.kpi-card--students .kpi-card__value {
+  color: var(--tertiary);
+}
+
+.dashboard-shortcut__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.dashboard-shortcut__body h3 {
+  margin-bottom: var(--space-xs);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.dashboard-shortcut__body p {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+}
+
 .section-head {
   display: flex;
   flex-wrap: wrap;
