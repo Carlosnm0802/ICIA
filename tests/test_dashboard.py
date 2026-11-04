@@ -220,6 +220,11 @@ def test_dashboard_ignora_pagos_cancelados_y_de_otra_semana(
 
     with factory() as session:
         resumen = reports.resumen_dashboard(session, hoy=hoy)
+        recaudacion = reports.recaudacion_por_sucursal(
+            session,
+            inicio_semana,
+            hoy,
+        )
 
     assert resumen.cobrado_hoy_centavos == 10000
     assert resumen.tickets_hoy == 1
@@ -228,6 +233,96 @@ def test_dashboard_ignora_pagos_cancelados_y_de_otra_semana(
     assert resumen.deudas_asistencias == 1
     assert resumen.deudas_centavos == 12500
     assert resumen.alumnos_activos == 35
+
+    ref = next(
+        fila for fila in recaudacion if fila.prefijo_folio == "REF"
+    )
+    assert ref.total_centavos == 17500
+    assert ref.tickets == 3
+
+
+def test_recaudacion_incluye_sucursales_sin_cobros(
+    dashboard_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    _, factory = dashboard_app
+    desde, hasta = reports.rango_semana()
+
+    with factory() as session:
+        filas = reports.recaudacion_por_sucursal(session, desde, hasta)
+
+    assert len(filas) == 4
+    assert {fila.nombre for fila in filas} == {
+        "Tototlán",
+        "Ocotlán",
+        "Poncitlán",
+        "El Refugio",
+    }
+    assert all(fila.total_centavos == 0 for fila in filas)
+    assert all(fila.tickets == 0 for fila in filas)
+
+
+def test_recaudacion_endpoint_json(
+    dashboard_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = dashboard_app
+    _, grupo_id = _ref_ids(factory)
+    sesion_id = _create_today_session(factory, grupo_id)
+    alumno_a, alumno_b = _student_ids(factory, 2)
+
+    with factory() as session:
+        cashier_service.cobrar_sesion(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumno_a,
+            metodo="efectivo",
+        )
+    with factory() as session:
+        cashier_service.cobrar_sesion(
+            session,
+            sesion_id=sesion_id,
+            alumno_id=alumno_b,
+            metodo="transferencia",
+        )
+
+    desde, hasta = reports.rango_semana()
+    response = client.get("/dashboard/recaudacion")
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    datos = response.json()
+    assert datos["desde"] == desde.isoformat()
+    assert datos["hasta"] == hasta.isoformat()
+    assert datos["total_centavos"] == 28000
+    assert len(datos["sucursales"]) == 4
+
+    ref = next(
+        sucursal
+        for sucursal in datos["sucursales"]
+        if sucursal["prefijo_folio"] == "REF"
+    )
+    assert ref["nombre"] == "El Refugio"
+    assert ref["total_centavos"] == 28000
+    assert ref["tickets"] == 2
+
+
+def test_dashboard_carga_chartjs_local(
+    dashboard_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, _ = dashboard_app
+
+    dashboard = client.get("/dashboard")
+    chart = client.get("/static/vendor/chart.js/chart.umd.min.js")
+    script = client.get("/static/js/dashboard.js")
+
+    assert dashboard.status_code == 200
+    assert 'id="recaudacion-chart"' in dashboard.text
+    assert "vendor/chart.js/chart.umd.min.js" in dashboard.text
+    assert "js/dashboard.js" in dashboard.text
+    assert "cdn.jsdelivr" not in dashboard.text
+    assert "unpkg" not in dashboard.text
+    assert chart.status_code == 200
+    assert chart.text.startswith("/*!")
+    assert script.status_code == 200
 
 
 def test_root_redirects_to_dashboard(

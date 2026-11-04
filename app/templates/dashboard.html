@@ -61,6 +61,25 @@
   </article>
 </section>
 
+<section class="panel dashboard-chart" aria-labelledby="recaudacion-title">
+  <div class="section-head">
+    <h2 id="recaudacion-title">Recaudación por sucursal</h2>
+    <span class="section-head__hint">
+      Semana del {{ resumen.inicio_semana.isoformat()|fecha }} al {{ resumen.fecha.isoformat()|fecha }}
+    </span>
+  </div>
+  <div class="chart-frame">
+    <canvas
+      id="recaudacion-chart"
+      role="img"
+      aria-label="Recaudación de la semana actual por sucursal"
+    ></canvas>
+  </div>
+  <p class="chart-summary" id="recaudacion-resumen" aria-live="polite">
+    Cargando recaudación por sucursal…
+  </p>
+</section>
+
 <section class="panel dashboard-shortcut" aria-labelledby="accesos-title">
   <div class="section-head">
     <h2 id="accesos-title">Operación del día</h2>
@@ -74,4 +93,9 @@
     <a class="button button--primary" href="/pos">Abrir Cobro Express</a>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='vendor/chart.js/chart.umd.min.js') }}" defer></script>
+  <script src="{{ url_for('static', path='js/dashboard.js') }}" defer></script>
 {% endblock %}

@@ -450,6 +450,22 @@ textarea {
   color: var(--tertiary);
 }
 
+.chart-frame {
+  position: relative;
+  height: 320px;
+}
+
+.chart-frame canvas {
+  max-width: 100%;
+}
+
+.chart-summary {
+  margin-top: var(--space-md);
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
 .dashboard-shortcut__body {
   display: flex;
   flex-wrap: wrap;
@@ -1247,6 +1263,10 @@ textarea {
   .choice-grid,
   .roster {
     grid-template-columns: 1fr;
+  }
+
+  .chart-frame {
+    height: 260px;
   }
 
   .session-bar,

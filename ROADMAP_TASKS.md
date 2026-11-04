@@ -58,7 +58,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - [x] **Tarea 3.1** — Endpoint y plantilla `dashboard.html` con KPI: cobrado hoy, cobrado en la semana, deudas y alumnos activos.
   - Entregable: dashboard como primera pantalla tras el login.
-- [ ] **Tarea 3.2** — Gráfica de recaudación por sucursal con Chart.js local (sin CDN).
+- [x] **Tarea 3.2** — Gráfica de recaudación por sucursal con Chart.js local (sin CDN).
   - Entregable: gráfica funcional offline.
 - [ ] **Tarea 3.3** — Módulo de deudas: listado de morosos con monto y botón de cobro rápido.
   - Entregable: cobrar deuda genera ticket y actualiza totales.
@@ -113,7 +113,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - Fase 1 completada.
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
-- Fase 3 en curso: **Tarea 3.1 completada** (dashboard con KPI y primer acceso tras login).
-- Siguiente tarea recomendada: **Tarea 3.2 — gráfica de recaudación por sucursal**.
+- Fase 3 en curso: **Tareas 3.1 y 3.2 completadas** (dashboard con KPI y gráfica local por sucursal).
+- Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
+- Siguiente tarea recomendada: **Tarea 3.3 — módulo de deudas con cobro rápido**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

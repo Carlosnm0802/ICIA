@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -33,3 +33,28 @@ def mostrar_dashboard(
     )
     response.headers["Cache-Control"] = "no-store"
     return response
+
+
+@router.get("/dashboard/recaudacion")
+def recaudacion_por_sucursal(
+    response: Response,
+    db: Session = Depends(get_db),
+) -> dict:
+    desde, hasta = reports.rango_semana()
+    filas = reports.recaudacion_por_sucursal(db, desde, hasta)
+    response.headers["Cache-Control"] = "no-store"
+    return {
+        "desde": desde.isoformat(),
+        "hasta": hasta.isoformat(),
+        "total_centavos": sum(fila.total_centavos for fila in filas),
+        "sucursales": [
+            {
+                "id": fila.sucursal_id,
+                "nombre": fila.nombre,
+                "prefijo_folio": fila.prefijo_folio,
+                "total_centavos": fila.total_centavos,
+                "tickets": fila.tickets,
+            }
+            for fila in filas
+        ],
+    }

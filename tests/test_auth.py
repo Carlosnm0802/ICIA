@@ -261,7 +261,13 @@ def test_rutas_protegidas_redirigen_al_login(
 ) -> None:
     client, _ = auth_app
 
-    for ruta in ("/", "/dashboard", "/pos", "/pos/tickets/1"):
+    for ruta in (
+        "/",
+        "/dashboard",
+        "/dashboard/recaudacion",
+        "/pos",
+        "/pos/tickets/1",
+    ):
         response = client.get(ruta, follow_redirects=False)
         assert response.status_code == 303
         assert response.headers["location"].startswith("/login?next=")
