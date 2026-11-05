@@ -1403,6 +1403,334 @@ textarea {
   text-align: center;
 }
 
+/* --- Académico: sucursales y grupos --- */
+
+.button--sm {
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: var(--slate-100);
+  color: var(--slate-700);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge--ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.badge--muted {
+  background: var(--slate-200);
+  color: var(--slate-700);
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.row-actions form {
+  display: inline;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--slate-200);
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--slate-100);
+  vertical-align: middle;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table__meta {
+  display: block;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: flex-end;
+}
+
+.filter-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-bar__select {
+  min-height: 48px;
+  min-width: 220px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+}
+
+.filter-bar__check {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-bar__check input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--primary-container);
+}
+
+.group-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.group-card {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+}
+
+.group-card--inactive {
+  opacity: 0.65;
+}
+
+.group-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.group-card__head h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.group-card__head p {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.group-card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.group-card__meta strong {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+}
+
+.group-card__blocks {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.form-panel {
+  max-width: 880px;
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.form-grid__row {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.form-grid__row--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid__row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-field__label {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.form-field__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+}
+
+.form-field__input:focus {
+  border-color: var(--primary-container);
+}
+
+.form-field__input[readonly] {
+  background: var(--slate-100);
+  color: var(--on-surface-variant);
+}
+
+.form-field__hint {
+  color: var(--on-surface-variant);
+  font-size: 0.75rem;
+}
+
+.form-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.form-fieldset > legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+.day-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.day-check {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.day-check:has(input:checked) {
+  border-color: var(--primary-container);
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.day-check input {
+  accent-color: var(--primary-container);
+}
+
+.block-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.block-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 1.4fr) auto;
+  gap: var(--space-md);
+  align-items: end;
+  padding: var(--space-md);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
+}
+
+.block-row__orden {
+  display: grid;
+  width: 40px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.block-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+  margin-top: var(--space-md);
+}
+
+.block-summary {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.block-summary--ok {
+  color: #047857;
+  font-weight: 600;
+}
+
+.block-summary--warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
 @media (max-width: 960px) {
   .app-shell {
     display: block;
@@ -1457,6 +1785,20 @@ textarea {
   .reposition-card__actions {
     grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+
+  .form-grid__row--2,
+  .form-grid__row--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .block-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .block-row .form-field,
+  .block-row__remove {
+    grid-column: 1 / -1;
   }
 }
 

@@ -73,7 +73,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## FASE 4 — Grupos, sesiones y pago a maestros
 
-- [ ] **Tarea 4.1** — CRUD de sucursales y grupos con bloques múltiples (materia, orden, duración, maestro, precio).
+- [x] **Tarea 4.1** — CRUD de sucursales y grupos con bloques múltiples (materia, orden, duración, maestro, precio).
   - Entregable: grupo de 1 h Robótica + 1 h Inglés creado desde la interfaz.
 - [ ] **Tarea 4.2** — Generación automática de sesiones desde el horario del grupo.
   - Entregable: sesiones programadas visibles y editables según reglas.
@@ -115,7 +115,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **165 passed**.
-- Siguiente tarea recomendada: **Tarea 4.1 — CRUD de sucursales y grupos con bloques múltiples**.
+- Suite de pruebas: **176 passed**.
+- Fase 4 en curso: **Tarea 4.1 completada** (CRUD de sucursales y grupos con bloques múltiples, bajas lógicas y validación de duración exacta).
+- Siguiente tarea recomendada: **Tarea 4.2 — Generación automática de sesiones desde el horario del grupo**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

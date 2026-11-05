@@ -1,0 +1,93 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Sucursales · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico</p>
+    <h1>Sucursales</h1>
+    <p class="page-head__meta">
+      {% if sucursales|length == 1 %}
+        1 sucursal registrada
+      {% else %}
+        {{ sucursales|length }} sucursales registradas
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/grupos">Ver grupos</a>
+    <a class="button button--primary" href="/sucursales/nueva">Nueva sucursal</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if creada %}
+  <div class="notice notice--success" role="status">Sucursal creada correctamente.</div>
+{% elif actualizada %}
+  <div class="notice notice--success" role="status">Sucursal actualizada.</div>
+{% endif %}
+
+<section class="panel" aria-labelledby="sucursales-title">
+  <div class="section-head">
+    <h2 id="sucursales-title">Listado de sucursales</h2>
+    <span class="section-head__hint">Solo cambia el estado; el historial se conserva</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Sucursal</th>
+          <th scope="col">Prefijo</th>
+          <th scope="col">Grupos activos</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in sucursales %}
+          <tr>
+            <td>
+              <strong>{{ item.nombre }}</strong>
+              {% if item.direccion %}
+                <small class="data-table__meta">{{ item.direccion }}</small>
+              {% endif %}
+            </td>
+            <td><span class="badge">{{ item.prefijo_folio }}</span></td>
+            <td class="tabular">{{ item.grupos_activos }}</td>
+            <td>
+              {% if item.activa %}
+                <span class="badge badge--ok">Activa</span>
+              {% else %}
+                <span class="badge badge--muted">Inactiva</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                <a class="button button--ghost button--sm" href="/sucursales/{{ item.id }}/editar">
+                  Editar
+                </a>
+                <form method="post" action="/sucursales/{{ item.id }}/estado">
+                  <input type="hidden" name="activa" value="{{ '0' if item.activa else '1' }}">
+                  <button class="button button--sm {{ 'button--ghost' if item.activa else 'button--primary' }}" type="submit">
+                    {{ 'Desactivar' if item.activa else 'Reactivar' }}
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <p class="empty-state">No hay sucursales registradas.</p>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

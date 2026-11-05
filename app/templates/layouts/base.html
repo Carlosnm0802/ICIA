@@ -50,6 +50,22 @@
           <span class="rail__icon" aria-hidden="true">↺</span>
           <span>Reposiciones</span>
         </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/grupos') %} rail__link--active{% endif %}"
+          href="/grupos"
+          {% if request.url.path.startswith('/grupos') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▦</span>
+          <span>Grupos</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/sucursales') %} rail__link--active{% endif %}"
+          href="/sucursales"
+          {% if request.url.path.startswith('/sucursales') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">⌂</span>
+          <span>Sucursales</span>
+        </a>
       </nav>
       <form class="rail__logout-form" method="post" action="/logout">
         <button class="rail__logout" type="submit">Cerrar sesión</button>

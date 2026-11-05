@@ -1,0 +1,106 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar' if sucursal else 'Nueva' }} sucursal · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico</p>
+    <h1>{{ 'Editar sucursal' if sucursal else 'Nueva sucursal' }}</h1>
+    <p class="page-head__meta">
+      {% if sucursal %}
+        {{ sucursal.nombre }} · {{ sucursal.prefijo_folio }}
+      {% else %}
+        Define nombre, prefijo de folio y datos de contacto
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/sucursales">Volver a sucursales</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+<section class="panel form-panel" aria-labelledby="sucursal-form-title">
+  <div class="section-head">
+    <h2 id="sucursal-form-title">Datos de la sucursal</h2>
+    <span class="section-head__hint">El prefijo identifica los folios de pago</span>
+  </div>
+
+  <form
+    class="form-grid"
+    method="post"
+    action="{{ '/sucursales/' ~ sucursal.id if sucursal else '/sucursales' }}"
+  >
+    <label class="form-field">
+      <span class="form-field__label">Nombre</span>
+      <input
+        class="form-field__input"
+        name="nombre"
+        type="text"
+        maxlength="120"
+        value="{{ sucursal.nombre if sucursal else '' }}"
+        autocomplete="off"
+        required
+      >
+    </label>
+
+    <label class="form-field">
+      <span class="form-field__label">Prefijo de folio</span>
+      <input
+        class="form-field__input"
+        name="prefijo_folio"
+        type="text"
+        maxlength="8"
+        minlength="2"
+        value="{{ sucursal.prefijo_folio if sucursal else '' }}"
+        autocomplete="off"
+        spellcheck="false"
+        {% if sucursal and not puede_prefijo %}readonly{% endif %}
+        required
+      >
+      {% if sucursal and not puede_prefijo %}
+        <small class="form-field__hint">
+          Bloqueado: la sucursal ya emitió folios de pago.
+        </small>
+      {% else %}
+        <small class="form-field__hint">2 a 8 caracteres, mayúsculas y números.</small>
+      {% endif %}
+    </label>
+
+    <label class="form-field">
+      <span class="form-field__label">Dirección</span>
+      <input
+        class="form-field__input"
+        name="direccion"
+        type="text"
+        maxlength="200"
+        value="{{ sucursal.direccion or '' if sucursal else '' }}"
+        autocomplete="off"
+      >
+    </label>
+
+    <label class="form-field">
+      <span class="form-field__label">Teléfono</span>
+      <input
+        class="form-field__input"
+        name="telefono"
+        type="tel"
+        maxlength="40"
+        value="{{ sucursal.telefono or '' if sucursal else '' }}"
+        autocomplete="off"
+      >
+    </label>
+
+    <div class="form-actions">
+      <button class="button button--primary" type="submit">
+        {{ 'Guardar cambios' if sucursal else 'Crear sucursal' }}
+      </button>
+      <a class="button button--ghost" href="/sucursales">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

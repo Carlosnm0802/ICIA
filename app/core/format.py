@@ -31,6 +31,11 @@ def formato_mxn(centavos: int) -> str:
     return f"{signo}${entero:,}.{resto:02d}"
 
 
+def formato_pesos(centavos: int) -> str:
+    entero, resto = divmod(centavos, 100)
+    return f"{entero}.{resto:02d}"
+
+
 def formato_fecha(iso: str) -> str:
     try:
         fecha = date.fromisoformat(iso)
