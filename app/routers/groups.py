@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 from urllib.parse import urlencode
@@ -332,6 +333,9 @@ def mostrar_sesiones_grupo(
     request: Request,
     generadas: Annotated[int | None, Query()] = None,
     reprogramada: Annotated[bool, Query()] = False,
+    cancelada: Annotated[bool, Query()] = False,
+    reactivada: Annotated[bool, Query()] = False,
+    extra_creada: Annotated[bool, Query()] = False,
     error: Annotated[str | None, Query(max_length=300)] = None,
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
@@ -346,6 +350,10 @@ def mostrar_sesiones_grupo(
             "resumen": resumen,
             "generadas": generadas,
             "reprogramada": reprogramada,
+            "cancelada": cancelada,
+            "reactivada": reactivada,
+            "extra_creada": extra_creada,
+            "hoy": date.today().isoformat(),
             "error": error,
         },
     )
@@ -365,6 +373,57 @@ def generar_sesiones_grupo(
     creadas = sessions_service.generar_sesiones_grupo(db, grupo.grupo)
     db.commit()
     return _destino(f"/grupos/{grupo_id}/sesiones", generadas=str(creadas))
+
+
+@router.post("/{grupo_id}/sesiones/extra", response_model=None)
+def crear_sesion_extra(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    fecha: Annotated[str, Form(max_length=10)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.crear_sesion_extra(
+            db,
+            grupo_id=grupo_id,
+            fecha_iso=fecha,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(f"/grupos/{grupo_id}/sesiones", error=str(exc))
+    return _destino(f"/grupos/{grupo_id}/sesiones", extra_creada="1")
+
+
+@router.post("/{grupo_id}/sesiones/{sesion_id}/cancelar", response_model=None)
+def cancelar_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.cancelar_sesion(
+            db,
+            grupo_id=grupo_id,
+            sesion_id=sesion_id,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(f"/grupos/{grupo_id}/sesiones", error=str(exc))
+    return _destino(f"/grupos/{grupo_id}/sesiones", cancelada="1")
+
+
+@router.post("/{grupo_id}/sesiones/{sesion_id}/reactivar", response_model=None)
+def reactivar_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.reactivar_sesion(
+            db,
+            grupo_id=grupo_id,
+            sesion_id=sesion_id,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(f"/grupos/{grupo_id}/sesiones", error=str(exc))
+    return _destino(f"/grupos/{grupo_id}/sesiones", reactivada="1")
 
 
 @router.post("/{grupo_id}/sesiones/{sesion_id}/reprogramar", response_model=None)

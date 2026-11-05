@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Sequence
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import SESSION_HORIZON_WEEKS
@@ -34,6 +35,8 @@ class SesionItem:
     asistencias_total: int
     maestros: tuple[str, ...]
     puede_reprogramar: bool
+    puede_cancelar: bool
+    puede_reactivar: bool
 
 
 @dataclass(frozen=True)
@@ -167,9 +170,8 @@ def generar_sesiones_grupo(
             db.flush()
             existentes[iso] = sesion
             creadas += 1
-
-        if maestro_ids:
-            _asegurar_maestros_sesion(db, sesion, maestro_ids)
+            if maestro_ids:
+                _asegurar_maestros_sesion(db, sesion, maestro_ids)
 
     return creadas
 
@@ -234,6 +236,7 @@ def generar_sesiones_activas(
 def listar_sesiones_grupo(
     db: Session,
     grupo_id: int,
+    hoy: date | None = None,
 ) -> SesionesGrupoResumen | None:
     grupo = db.scalar(select(Grupo).where(Grupo.id == grupo_id))
     if grupo is None:
@@ -258,19 +261,23 @@ def listar_sesiones_grupo(
     )
 
     maestros_por_sesion: dict[int, list[str]] = {}
+    sesiones_con_honorarios_pagados: set[int] = set()
     filas_maestros = db.execute(
-        select(SesionMaestro.sesion_id, Maestro.nombre)
+        select(SesionMaestro.sesion_id, Maestro.nombre, SesionMaestro.pagado)
         .join(Maestro, Maestro.id == SesionMaestro.maestro_id)
         .where(SesionMaestro.sesion_id.in_([s.id for s in sesiones] or [0]))
         .order_by(Maestro.nombre)
     ).all()
-    for s_id, m_nombre in filas_maestros:
+    for s_id, m_nombre, m_pagado in filas_maestros:
         maestros_por_sesion.setdefault(s_id, []).append(m_nombre)
+        if m_pagado == 1:
+            sesiones_con_honorarios_pagados.add(s_id)
 
     items: list[SesionItem] = []
     tot_prog = 0
     tot_imp = 0
     tot_canc = 0
+    hoy_iso = (hoy or date.today()).isoformat()
 
     for s in sesiones:
         if s.estado == "programada":
@@ -281,7 +288,21 @@ def listar_sesiones_grupo(
             tot_canc += 1
 
         num_asistencias = conteo_asistencias.get(s.id, 0)
+        con_datos = (
+            num_asistencias > 0
+            or s.id in sesiones_con_honorarios_pagados
+        )
         puede_reprogramar = s.estado == "programada" and num_asistencias == 0
+        puede_cancelar = (
+            s.estado == "programada"
+            and s.fecha >= hoy_iso
+            and not con_datos
+        )
+        puede_reactivar = (
+            s.estado == "cancelada"
+            and s.fecha >= hoy_iso
+            and not con_datos
+        )
 
         items.append(
             SesionItem(
@@ -292,6 +313,8 @@ def listar_sesiones_grupo(
                 asistencias_total=num_asistencias,
                 maestros=tuple(maestros_por_sesion.get(s.id, [])),
                 puede_reprogramar=puede_reprogramar,
+                puede_cancelar=puede_cancelar,
+                puede_reactivar=puede_reactivar,
             )
         )
 
@@ -311,12 +334,10 @@ def listar_sesiones_grupo(
     )
 
 
-def reprogramar_sesion(
+def _obtener_sesion_grupo(
     db: Session,
     grupo_id: int,
     sesion_id: int,
-    nueva_fecha_iso: str,
-    hoy: date | None = None,
 ) -> Sesion:
     sesion = db.scalar(
         select(Sesion).where(
@@ -326,6 +347,177 @@ def reprogramar_sesion(
     )
     if sesion is None:
         raise SessionServiceError("La sesión no existe para este grupo.")
+    return sesion
+
+
+def _contar_asistencias(db: Session, sesion_id: int) -> int:
+    return (
+        db.scalar(
+            select(func.count(Asistencia.id)).where(
+                Asistencia.sesion_id == sesion_id
+            )
+        )
+        or 0
+    )
+
+
+def _tiene_honorarios_pagados(db: Session, sesion_id: int) -> bool:
+    return (
+        db.scalar(
+            select(func.count(SesionMaestro.id)).where(
+                SesionMaestro.sesion_id == sesion_id,
+                SesionMaestro.pagado == 1,
+            )
+        )
+        or 0
+    ) > 0
+
+
+def _validar_sin_datos(db: Session, sesion: Sesion, accion: str) -> None:
+    if _contar_asistencias(db, sesion.id) > 0:
+        raise SessionServiceError(
+            f"No se puede {accion} una sesión que ya tiene asistencias o cobros registrados."
+        )
+    if _tiene_honorarios_pagados(db, sesion.id):
+        raise SessionServiceError(
+            f"No se puede {accion} una sesión con honorarios de maestros ya pagados."
+        )
+
+
+def cancelar_sesion(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+    hoy: date | None = None,
+) -> Sesion:
+    sesion = _obtener_sesion_grupo(db, grupo_id, sesion_id)
+
+    if sesion.estado == "cancelada":
+        raise SessionServiceError("La sesión ya está cancelada.")
+    if sesion.estado != "programada":
+        raise SessionServiceError(
+            f"Solo se pueden cancelar sesiones programadas (estado actual: {sesion.estado})."
+        )
+
+    base_hoy = hoy or date.today()
+    if sesion.fecha < base_hoy.isoformat():
+        raise SessionServiceError("No se puede cancelar una sesión pasada.")
+
+    _validar_sin_datos(db, sesion, "cancelar")
+
+    sesion.estado = "cancelada"
+    db.commit()
+    db.refresh(sesion)
+    return sesion
+
+
+def reactivar_sesion(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+    hoy: date | None = None,
+) -> Sesion:
+    sesion = _obtener_sesion_grupo(db, grupo_id, sesion_id)
+
+    if sesion.estado != "cancelada":
+        raise SessionServiceError("Solo se pueden reactivar sesiones canceladas.")
+
+    base_hoy = hoy or date.today()
+    if sesion.fecha < base_hoy.isoformat():
+        raise SessionServiceError("No se puede reactivar una sesión pasada.")
+
+    _validar_sin_datos(db, sesion, "reactivar")
+
+    sesion.estado = "programada"
+    db.commit()
+    db.refresh(sesion)
+    return sesion
+
+
+def crear_sesion_extra(
+    db: Session,
+    grupo_id: int,
+    fecha_iso: str,
+    hoy: date | None = None,
+) -> Sesion:
+    grupo = db.scalar(
+        select(Grupo).where(
+            Grupo.id == grupo_id,
+            Grupo.activo == 1,
+        )
+    )
+    if grupo is None:
+        raise SessionServiceError("El grupo no existe o está inactivo.")
+
+    sucursal = db.scalar(
+        select(Sucursal).where(
+            Sucursal.id == grupo.sucursal_id,
+            Sucursal.activa == 1,
+        )
+    )
+    if sucursal is None:
+        raise SessionServiceError("La sucursal del grupo está inactiva.")
+
+    try:
+        fecha = date.fromisoformat(fecha_iso.strip())
+    except ValueError as exc:
+        raise SessionServiceError(
+            "La fecha de la sesión extra debe tener formato YYYY-MM-DD."
+        ) from exc
+
+    base_hoy = hoy or date.today()
+    if fecha < base_hoy:
+        raise SessionServiceError(
+            "La sesión extra debe ser de hoy o de una fecha futura."
+        )
+
+    iso = fecha.isoformat()
+    existente = db.scalar(
+        select(Sesion).where(
+            Sesion.grupo_id == grupo.id,
+            Sesion.fecha == iso,
+        )
+    )
+    if existente is not None:
+        if existente.estado == "cancelada":
+            raise SessionServiceError(
+                f"Ya existe una sesión cancelada en la fecha {iso}; reactívala o elige otra fecha."
+            )
+        raise SessionServiceError(
+            f"El grupo ya tiene una sesión registrada en la fecha {iso}."
+        )
+
+    sesion = Sesion(
+        grupo_id=grupo.id,
+        fecha=iso,
+        estado="programada",
+        es_extra=1,
+    )
+    try:
+        db.add(sesion)
+        db.flush()
+        maestro_ids = _maestros_del_grupo(db, grupo.id)
+        if maestro_ids:
+            _asegurar_maestros_sesion(db, sesion, maestro_ids)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise SessionServiceError(
+            f"El grupo ya tiene una sesión registrada en la fecha {iso}."
+        ) from exc
+
+    db.refresh(sesion)
+    return sesion
+
+
+def reprogramar_sesion(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+    nueva_fecha_iso: str,
+    hoy: date | None = None,
+) -> Sesion:
+    sesion = _obtener_sesion_grupo(db, grupo_id, sesion_id)
 
     if sesion.estado != "programada":
         raise SessionServiceError(

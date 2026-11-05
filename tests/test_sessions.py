@@ -501,3 +501,477 @@ def test_pos_reutiliza_sesion_generada_de_hoy(
     assert pos_resp.status_code == 200
     assert "No hay sesión para hoy" not in pos_resp.text
     assert "session-summary" in pos_resp.text
+
+
+def _crear_sesion(
+    factory: sessionmaker[Session],
+    grupo_id: int,
+    fecha: str,
+    estado: str = "programada",
+    es_extra: int = 0,
+    maestro_ids: tuple[int, ...] = (),
+) -> int:
+    with factory() as session:
+        sesion = Sesion(
+            grupo_id=grupo_id,
+            fecha=fecha,
+            estado=estado,
+            es_extra=es_extra,
+        )
+        session.add(sesion)
+        session.flush()
+        for maestro_id in maestro_ids:
+            session.add(
+                SesionMaestro(
+                    sesion_id=sesion.id,
+                    maestro_id=maestro_id,
+                    pagado=0,
+                )
+            )
+        session.commit()
+        return sesion.id
+
+
+def _maestros_de_sesion(
+    factory: sessionmaker[Session],
+    sesion_id: int,
+) -> set[int]:
+    with factory() as session:
+        return set(
+            session.scalars(
+                select(SesionMaestro.maestro_id).where(
+                    SesionMaestro.sesion_id == sesion_id
+                )
+            )
+        )
+
+
+def test_cancelar_sesion_programada_sin_datos(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    fecha = (date.today() + timedelta(days=10)).isoformat()
+
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        fecha,
+        maestro_ids=(maestros[0], maestros[1]),
+    )
+
+    resp = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "cancelada=1" in resp.headers["location"]
+
+    with factory() as session:
+        sesion = session.get(Sesion, sesion_id)
+        assert sesion is not None
+        assert sesion.estado == "cancelada"
+
+        marcas = list(
+            session.scalars(
+                select(SesionMaestro).where(SesionMaestro.sesion_id == sesion_id)
+            )
+        )
+        assert len(marcas) == 2
+        assert all(marca.pagado == 0 for marca in marcas)
+
+
+def test_cancelar_sesion_rechaza_casos_invalidos(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+
+    with factory() as session:
+        alumno_id = session.scalar(select(Alumno.id).limit(1))
+    assert alumno_id is not None
+
+    fecha_pasada = (date.today() - timedelta(days=1)).isoformat()
+    sesion_pasada = _crear_sesion(factory, grupo_id, fecha_pasada)
+    resp_pasada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_pasada}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp_pasada.status_code == 303
+    assert "error=" in resp_pasada.headers["location"]
+
+    sesion_con_asistencia = _crear_sesion(
+        factory, grupo_id, (date.today() + timedelta(days=11)).isoformat()
+    )
+    with factory() as session:
+        session.add(
+            Asistencia(
+                sesion_id=sesion_con_asistencia,
+                alumno_id=alumno_id,
+                estado="asistio",
+                es_reposicion=0,
+            )
+        )
+        session.commit()
+
+    resp_asistencia = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_con_asistencia}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp_asistencia.status_code == 303
+    assert "error=" in resp_asistencia.headers["location"]
+
+    sesion_pagada = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=12)).isoformat(),
+        maestro_ids=(maestros[0],),
+    )
+    with factory() as session:
+        marca = session.scalar(
+            select(SesionMaestro).where(SesionMaestro.sesion_id == sesion_pagada)
+        )
+        assert marca is not None
+        marca.pagado = 1
+        session.commit()
+
+    resp_pagada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_pagada}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp_pagada.status_code == 303
+    assert "error=" in resp_pagada.headers["location"]
+
+    sesion_cancelada = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=13)).isoformat(),
+        estado="cancelada",
+    )
+    resp_cancelada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_cancelada}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp_cancelada.status_code == 303
+    assert "error=" in resp_cancelada.headers["location"]
+
+    sesion_impartida = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=14)).isoformat(),
+        estado="impartida",
+    )
+    resp_impartida = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_impartida}/cancelar",
+        follow_redirects=False,
+    )
+    assert resp_impartida.status_code == 303
+    assert "error=" in resp_impartida.headers["location"]
+
+    with factory() as session:
+        assert session.get(Sesion, sesion_pasada).estado == "programada"
+        assert session.get(Sesion, sesion_con_asistencia).estado == "programada"
+        assert session.get(Sesion, sesion_pagada).estado == "programada"
+        assert session.get(Sesion, sesion_cancelada).estado == "cancelada"
+        assert session.get(Sesion, sesion_impartida).estado == "impartida"
+
+
+def test_reactivar_sesion_cancelada(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=15)).isoformat(),
+        estado="cancelada",
+        maestro_ids=(maestros[0], maestros[1]),
+    )
+
+    resp = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/reactivar",
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "reactivada=1" in resp.headers["location"]
+
+    with factory() as session:
+        sesion = session.get(Sesion, sesion_id)
+        assert sesion is not None
+        assert sesion.estado == "programada"
+    assert _maestros_de_sesion(factory, sesion_id) == {maestros[0], maestros[1]}
+
+    sesion_pasada = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() - timedelta(days=2)).isoformat(),
+        estado="cancelada",
+    )
+    resp_pasada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_pasada}/reactivar",
+        follow_redirects=False,
+    )
+    assert resp_pasada.status_code == 303
+    assert "error=" in resp_pasada.headers["location"]
+
+
+def test_crear_sesion_extra_copia_maestros(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    fecha = (date.today() + timedelta(days=16)).isoformat()
+
+    resp = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": fecha},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "extra_creada=1" in resp.headers["location"]
+
+    with factory() as session:
+        sesion = session.scalar(
+            select(Sesion).where(
+                Sesion.grupo_id == grupo_id,
+                Sesion.fecha == fecha,
+            )
+        )
+        assert sesion is not None
+        assert sesion.es_extra == 1
+        assert sesion.estado == "programada"
+        sesion_id = sesion.id
+
+    assert _maestros_de_sesion(factory, sesion_id) == set(maestros)
+
+
+def test_crear_sesion_extra_rechaza_casos_invalidos(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    fecha_ocupada = (date.today() + timedelta(days=17)).isoformat()
+    _crear_sesion(factory, grupo_id, fecha_ocupada)
+
+    resp_duplicada = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": fecha_ocupada},
+        follow_redirects=False,
+    )
+    assert resp_duplicada.status_code == 303
+    assert "error=" in resp_duplicada.headers["location"]
+
+    resp_pasada = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": (date.today() - timedelta(days=1)).isoformat()},
+        follow_redirects=False,
+    )
+    assert resp_pasada.status_code == 303
+    assert "error=" in resp_pasada.headers["location"]
+
+    resp_invalida = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": "2026-13-40"},
+        follow_redirects=False,
+    )
+    assert resp_invalida.status_code == 303
+    assert "error=" in resp_invalida.headers["location"]
+
+    with factory() as session:
+        grupo = session.get(Grupo, grupo_id)
+        assert grupo is not None
+        grupo.activo = 0
+        session.commit()
+
+    resp_grupo_inactivo = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": (date.today() + timedelta(days=18)).isoformat()},
+        follow_redirects=False,
+    )
+    assert resp_grupo_inactivo.status_code == 303
+    assert "error=" in resp_grupo_inactivo.headers["location"]
+
+    with factory() as session:
+        grupo = session.get(Grupo, grupo_id)
+        assert grupo is not None
+        grupo.activo = 1
+        sucursal = session.get(Sucursal, grupo.sucursal_id)
+        assert sucursal is not None
+        sucursal.activa = 0
+        session.commit()
+
+    resp_sucursal_inactiva = client.post(
+        f"/grupos/{grupo_id}/sesiones/extra",
+        data={"fecha": (date.today() + timedelta(days=19)).isoformat()},
+        follow_redirects=False,
+    )
+    assert resp_sucursal_inactiva.status_code == 303
+    assert "error=" in resp_sucursal_inactiva.headers["location"]
+
+
+def test_canceladas_y_extras_sobreviven_a_sincronizacion(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    sucursal_id, _ = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+
+    with factory() as session:
+        grupo = catalog.crear_grupo(
+            session,
+            sucursal_id=sucursal_id,
+            nombre="Grupo Preservación",
+            dias_semana=["Lunes"],
+            hora_inicio="16:00",
+            hora_fin="18:00",
+            precio="140.00",
+            bloques=[
+                catalog.BloqueForm(
+                    materia="ingles",
+                    orden=1,
+                    duracion_minutos=60,
+                    maestro_id=maestros[0],
+                ),
+                catalog.BloqueForm(
+                    materia="robotica",
+                    orden=2,
+                    duracion_minutos=60,
+                    maestro_id=maestros[1],
+                ),
+            ],
+        )
+        grupo_id = grupo.id
+
+    extra_fecha = date.today() + timedelta(days=1)
+    while extra_fecha.weekday() == 0:
+        extra_fecha += timedelta(days=1)
+
+    with factory() as session:
+        sesiones = list(
+            session.scalars(
+                select(Sesion)
+                .where(Sesion.grupo_id == grupo_id)
+                .order_by(Sesion.fecha.asc())
+            )
+        )
+        assert sesiones
+        cancelable = sesiones[0]
+        cancelable_id = cancelable.id
+        sessions_service.cancelar_sesion(session, grupo_id, cancelable_id)
+
+        extra = sessions_service.crear_sesion_extra(
+            session,
+            grupo_id,
+            extra_fecha.isoformat(),
+        )
+        extra_id = extra.id
+
+    maestros_cancelada = _maestros_de_sesion(factory, cancelable_id)
+    maestros_extra = _maestros_de_sesion(factory, extra_id)
+    assert maestros_cancelada == {maestros[0], maestros[1]}
+    assert maestros_extra == {maestros[0], maestros[1]}
+
+    with factory() as session:
+        nuevo_maestro = Maestro(nombre="Maestro Nuevo", especialidad="Robótica")
+        session.add(nuevo_maestro)
+        session.commit()
+        nuevo_maestro_id = nuevo_maestro.id
+
+    resp = client.post(
+        f"/grupos/{grupo_id}",
+        data={
+            "sucursal_id": sucursal_id,
+            "nombre": "Grupo Preservación",
+            "dias_semana": ["Lunes"],
+            "hora_inicio": "16:00",
+            "hora_fin": "18:00",
+            "precio": "140.00",
+            "bloque_materia": ["ingles", "robotica"],
+            "bloque_duracion": [60, 60],
+            "bloque_maestro": [nuevo_maestro_id, maestros[1]],
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    with factory() as session:
+        cancelada = session.get(Sesion, cancelable_id)
+        assert cancelada is not None
+        assert cancelada.estado == "cancelada"
+
+        extra = session.get(Sesion, extra_id)
+        assert extra is not None
+        assert extra.es_extra == 1
+        assert extra.estado == "programada"
+
+        programadas = list(
+            session.scalars(
+                select(Sesion).where(
+                    Sesion.grupo_id == grupo_id,
+                    Sesion.estado == "programada",
+                    Sesion.es_extra == 0,
+                )
+            )
+        )
+        assert programadas
+        ids_programadas = {
+            maestro_id
+            for sesion in programadas
+            for maestro_id in _maestros_de_sesion(factory, sesion.id)
+        }
+        assert nuevo_maestro_id in ids_programadas
+
+    assert _maestros_de_sesion(factory, cancelable_id) == maestros_cancelada
+    assert _maestros_de_sesion(factory, extra_id) == maestros_extra
+
+
+def test_pantalla_sesiones_muestra_acciones_de_cancelacion(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+
+    with factory() as session:
+        grupo = session.get(Grupo, grupo_id)
+        assert grupo is not None
+        sessions_service.generar_sesiones_grupo(session, grupo)
+        session.commit()
+        sesion = session.scalar(
+            select(Sesion)
+            .where(Sesion.grupo_id == grupo_id)
+            .order_by(Sesion.fecha.asc())
+            .limit(1)
+        )
+        assert sesion is not None
+        sesion_id = sesion.id
+        sessions_service.cancelar_sesion(session, grupo_id, sesion_id)
+
+    resp = client.get(f"/grupos/{grupo_id}/sesiones?cancelada=1")
+    assert resp.status_code == 200
+    assert "Sesión cancelada. No generará faltas" in resp.text
+    assert "Crear sesión extra" in resp.text
+    assert "Reactivar" in resp.text
+
+
+def test_pos_muestra_sesion_extra(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    sucursal_id, grupo_id = _ref_ids(factory)
+
+    with factory() as session:
+        sessions_service.crear_sesion_extra(
+            session,
+            grupo_id,
+            date.today().isoformat(),
+        )
+
+    resp = client.get(f"/pos?sucursal_id={sucursal_id}&grupo_id={grupo_id}")
+    assert resp.status_code == 200
+    assert "Programada · Extra" in resp.text

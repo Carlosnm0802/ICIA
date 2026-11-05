@@ -40,7 +40,46 @@
   <div class="notice notice--success" role="status">
     Sesión reprogramada correctamente.
   </div>
+{% elif cancelada %}
+  <div class="notice notice--success" role="status">
+    Sesión cancelada. No generará faltas, cobros ni pago a maestros.
+  </div>
+{% elif reactivada %}
+  <div class="notice notice--success" role="status">
+    Sesión reactivada correctamente.
+  </div>
+{% elif extra_creada %}
+  <div class="notice notice--success" role="status">
+    Sesión extra creada correctamente.
+  </div>
 {% endif %}
+
+<section class="panel" aria-labelledby="extra-title">
+  <div class="section-head">
+    <h2 id="extra-title">Crear sesión extra</h2>
+    <span class="section-head__hint">
+      Clase adicional del mismo grupo, con sus maestros titulares
+    </span>
+  </div>
+  <form
+    class="row-actions"
+    method="post"
+    action="/grupos/{{ resumen.grupo_id }}/sesiones/extra"
+  >
+    <input
+      class="form-field__input"
+      style="min-height: 40px; width: auto; padding: 0 0.5rem;"
+      type="date"
+      name="fecha"
+      min="{{ hoy }}"
+      aria-label="Fecha de la sesión extra"
+      required
+    >
+    <button class="button button--primary button--sm" type="submit">
+      Crear sesión extra
+    </button>
+  </form>
+</section>
 
 <section class="session-summary" aria-label="Resumen de sesiones">
   <div>
@@ -65,7 +104,7 @@
   <div class="section-head">
     <h2 id="sesiones-title">Sesiones del grupo</h2>
     <span class="section-head__hint">
-      Solo se reprograma la fecha en sesiones programadas sin asistencias
+      Reprograma o cancela solo sesiones de hoy en adelante sin asistencias
     </span>
   </div>
 
@@ -103,35 +142,62 @@
               {{ s.asistencias_total }}
             </td>
             <td>
-              {% if s.puede_reprogramar %}
-                <form
-                  class="row-actions"
-                  method="post"
-                  action="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/reprogramar"
-                >
-                  <label class="sr-only" for="fecha-{{ s.id }}">Nueva fecha</label>
-                  <input
-                    class="form-field__input"
-                    style="min-height: 38px; width: auto; padding: 0 0.5rem;"
-                    id="fecha-{{ s.id }}"
-                    type="date"
-                    name="fecha"
-                    value="{{ s.fecha }}"
-                    required
+              <div class="row-actions">
+                {% if s.puede_reprogramar %}
+                  <form
+                    method="post"
+                    action="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/reprogramar"
                   >
-                  <button class="button button--ghost button--sm" type="submit">
-                    Reprogramar
-                  </button>
-                </form>
-              {% else %}
-                <span class="data-table__meta">
-                  {% if s.asistencias_total > 0 %}
-                    Con asistencias
-                  {% elif s.estado != 'programada' %}
-                    No editable
-                  {% endif %}
-                </span>
-              {% endif %}
+                    <label class="sr-only" for="fecha-{{ s.id }}">Nueva fecha</label>
+                    <input
+                      class="form-field__input"
+                      style="min-height: 38px; width: auto; padding: 0 0.5rem;"
+                      id="fecha-{{ s.id }}"
+                      type="date"
+                      name="fecha"
+                      value="{{ s.fecha }}"
+                      required
+                    >
+                    <button class="button button--ghost button--sm" type="submit">
+                      Reprogramar
+                    </button>
+                  </form>
+                {% endif %}
+                {% if s.puede_cancelar %}
+                  <form
+                    method="post"
+                    action="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/cancelar"
+                    data-confirmar="¿Cancelar la sesión del {{ s.fecha|fecha_larga }}? No generará faltas, cobros ni pago a maestros."
+                  >
+                    <button class="button button--ghost button--sm" type="submit">
+                      Cancelar
+                    </button>
+                  </form>
+                {% endif %}
+                {% if s.puede_reactivar %}
+                  <form
+                    method="post"
+                    action="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/reactivar"
+                  >
+                    <button class="button button--ghost button--sm" type="submit">
+                      Reactivar
+                    </button>
+                  </form>
+                {% endif %}
+                {% if not s.puede_reprogramar and not s.puede_cancelar and not s.puede_reactivar %}
+                  <span class="data-table__meta">
+                    {% if s.asistencias_total > 0 %}
+                      Con asistencias
+                    {% elif s.estado == 'cancelada' %}
+                      Cancelada
+                    {% elif s.estado == 'impartida' %}
+                      Impartida
+                    {% else %}
+                      No editable
+                    {% endif %}
+                  </span>
+                {% endif %}
+              </div>
             </td>
           </tr>
         {% else %}
@@ -147,4 +213,8 @@
     </table>
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/sessions.js') }}" defer></script>
 {% endblock %}

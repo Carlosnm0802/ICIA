@@ -118,7 +118,7 @@
             {% if sesion and item.id == sesion.id %}aria-current="page"{% endif %}
           >
             <span class="session-chip__date">{{ item.fecha|fecha_corta }}</span>
-            <span class="session-chip__state">{{ item.estado|capitalize }}</span>
+            <span class="session-chip__state">{{ item.estado|capitalize }}{{ ' · Extra' if item.es_extra else '' }}</span>
           </a>
         {% endfor %}
       </nav>

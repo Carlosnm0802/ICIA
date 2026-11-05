@@ -77,7 +77,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: grupo de 1 h Robótica + 1 h Inglés creado desde la interfaz.
 - [x] **Tarea 4.2** — Generación automática de sesiones desde el horario del grupo.
   - Entregable: sesiones programadas visibles y editables según reglas.
-- [ ] **Tarea 4.3** — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra.
+- [x] **Tarea 4.3** — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra.
   - Entregable: sesión cancelada y sesión extra funcionando.
 - [ ] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
   - Entregable: dos marcas de pago independientes por sesión.
@@ -115,8 +115,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **186 passed**.
-- Fase 4 en curso: **Tareas 4.1 y 4.2 completadas** (CRUD de sucursales/grupos y generación automática de sesiones con reprogramación y sincronización de horario).
-- Siguiente tarea recomendada: **Tarea 4.3 — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra**.
+- Suite de pruebas: **194 passed**.
+- Fase 4 en curso: **Tareas 4.1, 4.2 y 4.3 completadas** (CRUD de sucursales/grupos, generación automática de sesiones y cancelación/reactivación con sesiones extra).
+- Siguiente tarea recomendada: **Tarea 4.4 — Sustitución de docente titular por suplente en una sesión específica**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
