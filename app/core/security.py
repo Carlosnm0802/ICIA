@@ -114,16 +114,16 @@ def borrar_cookie_sesion(response: Response) -> None:
 
 def destino_seguro(next_url: str | None) -> str:
     if not next_url:
-        return "/pos"
+        return "/dashboard"
     if (
         not next_url.startswith("/")
         or next_url.startswith("//")
         or "\\" in next_url
     ):
-        return "/pos"
+        return "/dashboard"
     parsed = urlsplit(next_url)
     if parsed.scheme or parsed.netloc:
-        return "/pos"
+        return "/dashboard"
     return next_url
 
 

@@ -95,7 +95,7 @@ def test_setup_guarda_hash_y_autentica(
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/pos"
+    assert response.headers["location"] == "/dashboard"
     cookie = response.headers["set-cookie"].lower()
     assert "httponly" in cookie
     assert "samesite=lax" in cookie
@@ -220,7 +220,7 @@ def test_login_con_sesion_valida_redirige(
     response = client.get("/login", follow_redirects=False)
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/pos"
+    assert response.headers["location"] == "/dashboard"
 
 
 def test_login_respeta_next_local_y_rechaza_externo(
@@ -244,7 +244,7 @@ def test_login_respeta_next_local_y_rechaza_externo(
         follow_redirects=False,
     )
     assert externo.status_code == 303
-    assert externo.headers["location"] == "/pos"
+    assert externo.headers["location"] == "/dashboard"
 
     client.cookies.clear()
     doble_slash = client.post(
@@ -253,7 +253,7 @@ def test_login_respeta_next_local_y_rechaza_externo(
         follow_redirects=False,
     )
     assert doble_slash.status_code == 303
-    assert doble_slash.headers["location"] == "/pos"
+    assert doble_slash.headers["location"] == "/dashboard"
 
 
 def test_rutas_protegidas_redirigen_al_login(
@@ -261,7 +261,15 @@ def test_rutas_protegidas_redirigen_al_login(
 ) -> None:
     client, _ = auth_app
 
-    for ruta in ("/", "/pos", "/pos/tickets/1"):
+    for ruta in (
+        "/",
+        "/dashboard",
+        "/dashboard/recaudacion",
+        "/deudas",
+        "/reposiciones",
+        "/pos",
+        "/pos/tickets/1",
+    ):
         response = client.get(ruta, follow_redirects=False)
         assert response.status_code == 303
         assert response.headers["location"].startswith("/login?next=")

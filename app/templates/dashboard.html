@@ -1,0 +1,101 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Dashboard · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Dashboard</p>
+    <h1>{{ resumen.fecha.isoformat()|fecha_larga }}</h1>
+    <p class="page-head__meta">
+      Semana del {{ resumen.inicio_semana.isoformat()|fecha }} al {{ resumen.fecha.isoformat()|fecha }}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--primary" href="/pos">Ir a Cobro Express</a>
+  </div>
+</header>
+
+<section class="kpi-grid" aria-label="Indicadores de recaudación y alumnos">
+  <article class="kpi-card kpi-card--primary">
+    <span class="kpi-card__label">Cobrado hoy</span>
+    <strong class="kpi-card__value tabular">{{ resumen.cobrado_hoy_centavos|mxn }}</strong>
+    <span class="kpi-card__hint">
+      {% if resumen.tickets_hoy == 1 %}
+        1 ticket vigente
+      {% else %}
+        {{ resumen.tickets_hoy }} tickets vigentes
+      {% endif %}
+    </span>
+  </article>
+
+  <article class="kpi-card kpi-card--week">
+    <span class="kpi-card__label">Cobrado en la semana</span>
+    <strong class="kpi-card__value tabular">{{ resumen.cobrado_semana_centavos|mxn }}</strong>
+    <span class="kpi-card__hint">
+      Desde el {{ resumen.inicio_semana.isoformat()|fecha }}
+      {% if resumen.tickets_semana == 1 %}
+        · 1 ticket
+      {% else %}
+        · {{ resumen.tickets_semana }} tickets
+      {% endif %}
+    </span>
+  </article>
+
+  <article class="kpi-card kpi-card--debt">
+    <span class="kpi-card__label">Deudas</span>
+    <strong class="kpi-card__value tabular">{{ resumen.deudas_centavos|mxn }}</strong>
+    <span class="kpi-card__hint">
+      {% if resumen.deudas_asistencias == 1 %}
+        1 asistencia sin pago
+      {% else %}
+        {{ resumen.deudas_asistencias }} asistencias sin pago
+      {% endif %}
+    </span>
+  </article>
+
+  <article class="kpi-card kpi-card--students">
+    <span class="kpi-card__label">Alumnos activos</span>
+    <strong class="kpi-card__value tabular">{{ resumen.alumnos_activos }}</strong>
+    <span class="kpi-card__hint">En todas las sucursales</span>
+  </article>
+</section>
+
+<section class="panel dashboard-chart" aria-labelledby="recaudacion-title">
+  <div class="section-head">
+    <h2 id="recaudacion-title">Recaudación por sucursal</h2>
+    <span class="section-head__hint">
+      Semana del {{ resumen.inicio_semana.isoformat()|fecha }} al {{ resumen.fecha.isoformat()|fecha }}
+    </span>
+  </div>
+  <div class="chart-frame">
+    <canvas
+      id="recaudacion-chart"
+      role="img"
+      aria-label="Recaudación de la semana actual por sucursal"
+    ></canvas>
+  </div>
+  <p class="chart-summary" id="recaudacion-resumen" aria-live="polite">
+    Cargando recaudación por sucursal…
+  </p>
+</section>
+
+<section class="panel dashboard-shortcut" aria-labelledby="accesos-title">
+  <div class="section-head">
+    <h2 id="accesos-title">Operación del día</h2>
+    <span class="section-head__hint">Continúa con el cobro de la sesión</span>
+  </div>
+  <div class="dashboard-shortcut__body">
+    <div>
+      <h3>¿Listo para cobrar?</h3>
+      <p>Abre la lista del grupo, registra asistencias y dispensa tickets desde Cobro Express.</p>
+    </div>
+    <a class="button button--primary" href="/pos">Abrir Cobro Express</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='vendor/chart.js/chart.umd.min.js') }}" defer></script>
+  <script src="{{ url_for('static', path='js/dashboard.js') }}" defer></script>
+{% endblock %}

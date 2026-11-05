@@ -235,11 +235,26 @@ def test_pos_roster_shows_payment_states(
     ):
         match = re.search(
             rf'data-alumno-id="{alumnos[nombre]}"[\s\S]*?'
-            rf'data-accion="deshacer"[^>]*>',
+            rf'(<button[^>]*data-accion="deshacer"[^>]*>)',
             response.text,
         )
         assert match is not None
-        tiene_hidden = bool(re.search(r"\shidden(?=[\s>])", match.group()))
+        tiene_hidden = bool(re.search(r"\shidden(?=[\s>])", match.group(1)))
+        assert tiene_hidden == oculto
+
+    for nombre, oculto in (
+        ("Alumno 01", False),
+        ("Alumno 02", True),
+        ("Alumno 03", True),
+        ("Alumno 04", True),
+    ):
+        match = re.search(
+            rf'data-alumno-id="{alumnos[nombre]}"[\s\S]*?'
+            rf'(<button[^>]*data-accion="falta"[^>]*>)',
+            response.text,
+        )
+        assert match is not None
+        tiene_hidden = bool(re.search(r"\shidden(?=[\s>])", match.group(1)))
         assert tiene_hidden == oculto
 
 
@@ -307,6 +322,10 @@ def test_static_css_is_served(
     assert ".student-card__undo" in response.text
     assert ".method-button--debt" in response.text
     assert ".student-card--deuda" in response.text
+    assert ".student-card--falto" in response.text
+    assert ".student-card__falta" in response.text
+    assert ".reposition-card" in response.text
+    assert ".reposition-form" in response.text
 
 
 def test_clave_orden_ignores_accents_and_case() -> None:
@@ -344,6 +363,8 @@ def test_pos_session_includes_keyboard_controls(
     assert 'data-metodo="transferencia"' in response.text
     assert 'data-accion="sin-pagar"' in response.text
     assert 'data-accion="deshacer"' in response.text
+    assert 'data-accion="falta"' in response.text
+    assert "Marcar falta" in response.text
     assert "<kbd>F3</kbd> registra deuda" in response.text
     assert "/static/js/pos.js" in response.text
 
@@ -370,6 +391,7 @@ def test_pos_cancelled_session_omits_keyboard_controls(
     assert 'data-metodo="efectivo"' not in response.text
     assert 'data-accion="sin-pagar"' not in response.text
     assert 'data-accion="deshacer"' not in response.text
+    assert 'data-accion="falta"' not in response.text
     assert "/static/js/pos.js" not in response.text
 
 
@@ -383,10 +405,12 @@ def test_static_pos_js_is_served(
     assert 'fetch("/pos/cobrar"' in response.text
     assert 'fetch("/pos/asistio-sin-pagar"' in response.text
     assert 'fetch("/pos/deshacer-asistencia"' in response.text
+    assert 'fetch("/pos/marcar-falta"' in response.text
     assert 'event.key === "F1"' in response.text
     assert 'event.key === "F2"' in response.text
     assert 'event.key === "F3"' in response.text
     assert "registrarDeuda" in response.text
+    assert "marcarFalta" in response.text
     assert "deshacerAsistencia" in response.text
     assert "window.confirm" in response.text
     assert "data-counter" in response.text

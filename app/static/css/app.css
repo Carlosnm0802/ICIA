@@ -376,6 +376,262 @@ textarea {
   padding: var(--space-md) var(--space-lg);
 }
 
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: 1px solid var(--slate-200);
+  border-top: 4px solid var(--primary-container);
+  border-radius: var(--radius-xl);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.kpi-card__label {
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.kpi-card__value {
+  color: var(--on-surface);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.kpi-card__hint {
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.kpi-card--primary {
+  border-top-color: var(--primary-container);
+}
+
+.kpi-card--primary .kpi-card__value {
+  color: var(--primary);
+}
+
+.kpi-card--week {
+  border-top-color: var(--secondary-container);
+}
+
+.kpi-card--week .kpi-card__value {
+  color: var(--secondary);
+}
+
+.kpi-card--debt {
+  border-top-color: var(--amber);
+}
+
+.kpi-card--debt .kpi-card__value {
+  color: #b45309;
+}
+
+.kpi-card--students {
+  border-top-color: var(--tertiary-fixed);
+}
+
+.kpi-card--students .kpi-card__value {
+  color: var(--tertiary);
+}
+
+.chart-frame {
+  position: relative;
+  height: 320px;
+}
+
+.chart-frame canvas {
+  max-width: 100%;
+}
+
+.chart-summary {
+  margin-top: var(--space-md);
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.debt-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.debt-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 84px;
+  padding: var(--space-md);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.debt-card__avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.debt-card__body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.debt-card__body p {
+  margin-top: 0.2rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.debt-card__amount {
+  color: #b45309;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.debt-card__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.debt-action {
+  min-width: 8.5rem;
+}
+
+.reposition-list {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.reposition-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: 84px;
+  padding: var(--space-md);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.reposition-card__avatar {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.reposition-card__body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.reposition-card__body p {
+  margin-top: 0.2rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.reposition-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.reposition-card__meta strong {
+  color: var(--slate-900);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.reposition-card__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reposition-form {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 280px;
+}
+
+.reposition-form__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.reposition-select {
+  min-height: 48px;
+  max-width: 100%;
+  padding: 0 0.75rem;
+  border: 1px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  background: var(--surface-container-lowest);
+  color: var(--slate-900);
+}
+
+.reposition-empty {
+  max-width: 280px;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
+.dashboard-shortcut__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.dashboard-shortcut__body h3 {
+  margin-bottom: var(--space-xs);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.dashboard-shortcut__body p {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+}
+
 .section-head {
   display: flex;
   flex-wrap: wrap;
@@ -563,6 +819,11 @@ textarea {
   color: #be123c;
 }
 
+.notice--success {
+  background: #ecfdf5;
+  color: #047857;
+}
+
 .counter-row {
   display: flex;
   flex-wrap: wrap;
@@ -647,6 +908,10 @@ textarea {
   animation: card-debt 900ms ease-out;
 }
 
+.student-card--falto {
+  animation: card-falta 900ms ease-out;
+}
+
 @keyframes card-paid {
   0% {
     border-color: #10b981;
@@ -673,6 +938,43 @@ textarea {
     background: var(--surface-container-lowest);
     transform: scale(1);
   }
+}
+
+@keyframes card-falta {
+  0% {
+    border-color: #be123c;
+    background: #fff1f2;
+    transform: scale(1.01);
+  }
+
+  100% {
+    border-color: var(--slate-200);
+    background: var(--surface-container-lowest);
+    transform: scale(1);
+  }
+}
+
+.student-card__falta {
+  align-self: flex-start;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #b45309;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.student-card__falta:hover {
+  color: #92400e;
+}
+
+.student-card__falta[hidden] {
+  display: none;
 }
 
 .student-card__undo {
@@ -1135,6 +1437,27 @@ textarea {
   .page-head__actions {
     justify-content: flex-start;
   }
+
+  .debt-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .debt-card__actions {
+    grid-column: 1 / -1;
+  }
+
+  .debt-action {
+    flex: 1;
+  }
+
+  .reposition-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .reposition-card__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
@@ -1154,6 +1477,41 @@ textarea {
   .choice-grid,
   .roster {
     grid-template-columns: 1fr;
+  }
+
+  .chart-frame {
+    height: 260px;
+  }
+
+  .debt-card {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .debt-card__amount {
+    grid-column: 1 / -1;
+    font-size: 1.5rem;
+  }
+
+  .debt-card__actions {
+    flex-direction: column;
+  }
+
+  .debt-action {
+    width: 100%;
+  }
+
+  .reposition-form {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .reposition-form__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reposition-select {
+    width: 100%;
   }
 
   .session-bar,

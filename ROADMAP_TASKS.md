@@ -56,15 +56,15 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## FASE 3 — Dashboard, deudas y reposiciones
 
-- [ ] **Tarea 3.1** — Endpoint y plantilla `dashboard.html` con KPI: cobrado hoy, cobrado en la semana, deudas y alumnos activos.
+- [x] **Tarea 3.1** — Endpoint y plantilla `dashboard.html` con KPI: cobrado hoy, cobrado en la semana, deudas y alumnos activos.
   - Entregable: dashboard como primera pantalla tras el login.
-- [ ] **Tarea 3.2** — Gráfica de recaudación por sucursal con Chart.js local (sin CDN).
+- [x] **Tarea 3.2** — Gráfica de recaudación por sucursal con Chart.js local (sin CDN).
   - Entregable: gráfica funcional offline.
-- [ ] **Tarea 3.3** — Módulo de deudas: listado de morosos con monto y botón de cobro rápido.
+- [x] **Tarea 3.3** — Módulo de deudas: listado de morosos con monto y botón de cobro rápido.
   - Entregable: cobrar deuda genera ticket y actualiza totales.
-- [ ] **Tarea 3.4** — Módulo de reposiciones pendientes y registro de reposición en otro grupo sin cobro nuevo.
+- [x] **Tarea 3.4** — Módulo de reposiciones pendientes y registro de reposición en otro grupo sin cobro nuevo.
   - Entregable: falta con pago se marca como repuesta y no altera el total cobrado.
-- [ ] **Tarea 3.5** — Pruebas de dashboard, deuda y reposición.
+- [x] **Tarea 3.5** — Pruebas de dashboard, deuda y reposición.
   - Entregable: `pytest` verde y totales consistentes.
 
 **Criterio de aceptación Fase 3:** al cobrar una deuda, el dashboard actualiza automáticamente los totales recaudados; reponer una clase no genera cobro nuevo.
@@ -113,6 +113,9 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - Fase 1 completada.
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
-- Siguiente tarea recomendada: **Tarea 3.1 — dashboard con KPI**.
+- Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
+- Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
+- Suite de pruebas: **165 passed**.
+- Siguiente tarea recomendada: **Tarea 4.1 — CRUD de sucursales y grupos con bloques múltiples**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
