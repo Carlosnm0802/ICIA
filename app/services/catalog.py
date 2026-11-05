@@ -528,6 +528,10 @@ def crear_grupo(
     db.add(grupo)
     db.flush()
     _crear_bloques(db, grupo.id, bloques)
+
+    from app.services import sessions as sessions_service
+    sessions_service.generar_sesiones_grupo(db, grupo)
+
     try:
         db.commit()
     except IntegrityError as exc:
@@ -584,6 +588,9 @@ def actualizar_grupo(
         db.delete(bloque)
     db.flush()
     _crear_bloques(db, grupo.id, bloques)
+
+    from app.services import sessions as sessions_service
+    sessions_service.sincronizar_sesiones_grupo(db, grupo, reemplazar_futuras=True)
 
     try:
         db.commit()

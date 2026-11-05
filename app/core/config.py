@@ -31,6 +31,18 @@ def _session_hours() -> int:
 SESSION_HOURS = _session_hours()
 
 
+def _session_horizon_weeks() -> int:
+    valor = os.getenv("ICIA_SESSION_HORIZON_WEEKS", "8")
+    try:
+        semanas = int(valor)
+    except ValueError:
+        return 8
+    return semanas if 1 <= semanas <= 52 else 8
+
+
+SESSION_HORIZON_WEEKS = _session_horizon_weeks()
+
+
 def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent

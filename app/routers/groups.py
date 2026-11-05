@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 
 from app.core.config import APP_NAME
 from app.core.database import get_db
-from app.core.format import formato_fecha, formato_mxn, formato_pesos
-from app.services import catalog
+from app.core.format import formato_fecha, formato_fecha_larga, formato_mxn, formato_pesos
+from app.services import catalog, sessions as sessions_service
 
 TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 templates.env.filters["mxn"] = formato_mxn
 templates.env.filters["fecha"] = formato_fecha
+templates.env.filters["fecha_larga"] = formato_fecha_larga
 templates.env.filters["pesos"] = formato_pesos
 templates.env.globals["app_name"] = APP_NAME
 
@@ -323,3 +324,63 @@ def cambiar_estado_grupo(
     except catalog.CatalogError as exc:
         return _destino("/grupos", error=str(exc))
     return _destino("/grupos", actualizado="1")
+
+
+@router.get("/{grupo_id}/sesiones", response_class=HTMLResponse)
+def mostrar_sesiones_grupo(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    request: Request,
+    generadas: Annotated[int | None, Query()] = None,
+    reprogramada: Annotated[bool, Query()] = False,
+    error: Annotated[str | None, Query(max_length=300)] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    resumen = sessions_service.listar_sesiones_grupo(db, grupo_id)
+    if resumen is None:
+        return RedirectResponse(url="/grupos", status_code=303)
+
+    response = templates.TemplateResponse(
+        request=request,
+        name="groups/sessions.html",
+        context={
+            "resumen": resumen,
+            "generadas": generadas,
+            "reprogramada": reprogramada,
+            "error": error,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.post("/{grupo_id}/sesiones/generar", response_model=None)
+def generar_sesiones_grupo(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    grupo = catalog.obtener_grupo_detalle(db, grupo_id)
+    if grupo is None:
+        return RedirectResponse(url="/grupos", status_code=303)
+
+    creadas = sessions_service.generar_sesiones_grupo(db, grupo.grupo)
+    db.commit()
+    return _destino(f"/grupos/{grupo_id}/sesiones", generadas=str(creadas))
+
+
+@router.post("/{grupo_id}/sesiones/{sesion_id}/reprogramar", response_model=None)
+def reprogramar_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    fecha: Annotated[str, Form(max_length=10)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.reprogramar_sesion(
+            db,
+            grupo_id=grupo_id,
+            sesion_id=sesion_id,
+            nueva_fecha_iso=fecha,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(f"/grupos/{grupo_id}/sesiones", error=str(exc))
+    return _destino(f"/grupos/{grupo_id}/sesiones", reprogramada="1")

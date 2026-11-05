@@ -1,0 +1,150 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Sesiones de {{ resumen.grupo_nombre }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico · Sesiones</p>
+    <h1>{{ resumen.grupo_nombre }}</h1>
+    <p class="page-head__meta">
+      {{ resumen.sucursal_nombre }} · {{ resumen.dias_semana|replace(',', ' · ') }}
+      · {{ resumen.hora_inicio }}–{{ resumen.hora_fin }}
+      · {{ resumen.precio_centavos|mxn }} por sesión
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <form method="post" action="/grupos/{{ resumen.grupo_id }}/sesiones/generar">
+      <button class="button button--ghost" type="submit">Generar horizonte</button>
+    </form>
+    <a class="button button--ghost" href="/grupos/{{ resumen.grupo_id }}/editar">Editar grupo</a>
+    <a class="button button--ghost" href="/grupos">Volver a grupos</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if generadas is not none %}
+  <div class="notice notice--success" role="status">
+    {% if generadas == 0 %}
+      El horizonte ya estaba completo (no se crearon sesiones nuevas).
+    {% elif generadas == 1 %}
+      Se generó 1 sesión nueva.
+    {% else %}
+      Se generaron {{ generadas }} sesiones nuevas.
+    {% endif %}
+  </div>
+{% elif reprogramada %}
+  <div class="notice notice--success" role="status">
+    Sesión reprogramada correctamente.
+  </div>
+{% endif %}
+
+<section class="session-summary" aria-label="Resumen de sesiones">
+  <div>
+    <span class="label">Programadas</span>
+    <strong class="tabular">{{ resumen.total_programadas }}</strong>
+  </div>
+  <div>
+    <span class="label">Impartidas</span>
+    <strong class="tabular">{{ resumen.total_impartidas }}</strong>
+  </div>
+  <div>
+    <span class="label">Canceladas</span>
+    <strong class="tabular">{{ resumen.total_canceladas }}</strong>
+  </div>
+  <div>
+    <span class="label">Total en registro</span>
+    <strong class="tabular">{{ resumen.sesiones|length }}</strong>
+  </div>
+</section>
+
+<section class="panel" aria-labelledby="sesiones-title">
+  <div class="section-head">
+    <h2 id="sesiones-title">Sesiones del grupo</h2>
+    <span class="section-head__hint">
+      Solo se reprograma la fecha en sesiones programadas sin asistencias
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Fecha</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Maestros</th>
+          <th scope="col">Asistencias</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in resumen.sesiones %}
+          <tr>
+            <td>
+              <strong>{{ s.fecha|fecha }}</strong>
+              <small class="data-table__meta">{{ s.fecha|fecha_larga }}</small>
+            </td>
+            <td>
+              <span class="pill pill--{{ s.estado }}">
+                {{ s.estado|capitalize }}{{ ' · Extra' if s.es_extra else '' }}
+              </span>
+            </td>
+            <td>
+              {% if s.maestros %}
+                {{ s.maestros|join(', ') }}
+              {% else %}
+                <span class="data-table__meta">Sin maestros</span>
+              {% endif %}
+            </td>
+            <td class="tabular">
+              {{ s.asistencias_total }}
+            </td>
+            <td>
+              {% if s.puede_reprogramar %}
+                <form
+                  class="row-actions"
+                  method="post"
+                  action="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/reprogramar"
+                >
+                  <label class="sr-only" for="fecha-{{ s.id }}">Nueva fecha</label>
+                  <input
+                    class="form-field__input"
+                    style="min-height: 38px; width: auto; padding: 0 0.5rem;"
+                    id="fecha-{{ s.id }}"
+                    type="date"
+                    name="fecha"
+                    value="{{ s.fecha }}"
+                    required
+                  >
+                  <button class="button button--ghost button--sm" type="submit">
+                    Reprogramar
+                  </button>
+                </form>
+              {% else %}
+                <span class="data-table__meta">
+                  {% if s.asistencias_total > 0 %}
+                    Con asistencias
+                  {% elif s.estado != 'programada' %}
+                    No editable
+                  {% endif %}
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                No hay sesiones generadas para este grupo.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
