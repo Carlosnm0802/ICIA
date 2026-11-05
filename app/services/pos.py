@@ -6,7 +6,7 @@ from unicodedata import normalize
 
 from sqlalchemy import and_, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.models import (
     Alumno,
@@ -186,8 +186,15 @@ def listar_roster(
     grupo_id: int,
     sesion_id: int,
 ) -> tuple[list[AlumnoRoster], ResumenRoster]:
+    reposicion = aliased(Asistencia)
+    repuesta = (
+        select(reposicion.id)
+        .where(reposicion.repone_a_id == Asistencia.id)
+        .exists()
+        .label("repuesta")
+    )
     consulta = (
-        select(Alumno, Asistencia, Pago)
+        select(Alumno, Asistencia, Pago, repuesta)
         .join(
             GrupoAlumno,
             and_(
@@ -212,14 +219,18 @@ def listar_roster(
 
     filas = db.execute(consulta).all()
     alumnos = []
-    for alumno, asistencia, pago in filas:
+    for alumno, asistencia, pago, repuesta in filas:
         estado = _estado(asistencia, pago)
-        puede_deshacer = asistencia is not None and (
-            asistencia.estado == "asistio"
-            or (
-                asistencia.estado == "falto"
-                and pago is not None
-                and pago.estado == "vigente"
+        puede_deshacer = (
+            asistencia is not None
+            and not repuesta
+            and (
+                asistencia.estado == "asistio"
+                or (
+                    asistencia.estado == "falto"
+                    and pago is not None
+                    and pago.estado == "vigente"
+                )
             )
         )
         alumnos.append(

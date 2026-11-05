@@ -478,3 +478,110 @@ def test_registrar_reposicion_duplicada_desde_ui(
             )
             == 1
         )
+
+
+def test_deshacer_falta_repuesta_es_rechazada(
+    repositions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = repositions_app
+    sucursal_id, grupo_id, alumno_id = _ref_ids(factory)
+    falta_id, _ = _create_falta_pagada(factory, grupo_id, alumno_id)
+    _, sesion_destino = _create_target(factory)
+
+    with factory() as session:
+        cashier_service.registrar_reposicion(
+            session,
+            falta_id=falta_id,
+            sesion_destino_id=sesion_destino,
+        )
+
+    with factory() as session:
+        falta = session.get(Asistencia, falta_id)
+        assert falta is not None
+        sesion_origen_id = falta.sesion_id
+
+    with factory() as session:
+        with pytest.raises(CashierError, match="ya fue repuesta"):
+            cashier_service.deshacer_asistencia(
+                session,
+                sesion_id=sesion_origen_id,
+                alumno_id=alumno_id,
+            )
+
+    response = client.post(
+        "/pos/deshacer-asistencia",
+        json={"sesion_id": sesion_origen_id, "alumno_id": alumno_id},
+    )
+    assert response.status_code == 409
+    assert "ya fue repuesta" in response.json()["detail"]
+
+    roster_resp = client.get(
+        f"/pos?sucursal_id={sucursal_id}"
+        f"&grupo_id={grupo_id}"
+        f"&sesion_id={sesion_origen_id}"
+    )
+    assert roster_resp.status_code == 200
+    import re
+    match = re.search(
+        rf'data-alumno-id="{alumno_id}"[\s\S]*?'
+        rf'(<button[^>]*data-accion="deshacer"[^>]*>)',
+        roster_resp.text,
+    )
+    assert match is not None
+    assert "hidden" in match.group(1)
+
+
+def test_listar_sesiones_destino_excluye_inactivas_y_canceladas(
+    repositions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    _, factory = repositions_app
+    with factory.begin() as session:
+        sucursal = session.scalar(
+            select(Sucursal).where(Sucursal.prefijo_folio == "TOT")
+        )
+        assert sucursal is not None
+        grupo_activo = Grupo(
+            sucursal_id=sucursal.id,
+            nombre="Grupo Visible",
+            dias_semana="Lunes",
+            hora_inicio="16:00",
+            hora_fin="18:00",
+            precio_centavos=14000,
+            activo=1,
+        )
+        grupo_inactivo = Grupo(
+            sucursal_id=sucursal.id,
+            nombre="Grupo Inactivo",
+            dias_semana="Martes",
+            hora_inicio="16:00",
+            hora_fin="18:00",
+            precio_centavos=14000,
+            activo=0,
+        )
+        session.add_all([grupo_activo, grupo_inactivo])
+        session.flush()
+
+        s_valida = Sesion(
+            grupo_id=grupo_activo.id,
+            fecha=(date.today() + timedelta(days=2)).isoformat(),
+            estado="programada",
+        )
+        s_cancelada = Sesion(
+            grupo_id=grupo_activo.id,
+            fecha=(date.today() + timedelta(days=3)).isoformat(),
+            estado="cancelada",
+        )
+        s_grupo_inactivo = Sesion(
+            grupo_id=grupo_inactivo.id,
+            fecha=(date.today() + timedelta(days=4)).isoformat(),
+            estado="programada",
+        )
+        session.add_all([s_valida, s_cancelada, s_grupo_inactivo])
+
+    from app.services import reports
+    with factory() as session:
+        destinos = reports.listar_sesiones_destino(session)
+        ids = [d.id for d in destinos]
+        assert s_valida.id in ids
+        assert s_cancelada.id not in ids
+        assert s_grupo_inactivo.id not in ids

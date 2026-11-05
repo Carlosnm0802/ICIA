@@ -334,6 +334,15 @@ def deshacer_asistencia(
                 raise CashierError(
                     "Solo se puede deshacer una asistencia pagada."
                 )
+            repuesta = db.scalar(
+                select(Asistencia.id).where(
+                    Asistencia.repone_a_id == asistencia.id,
+                )
+            )
+            if repuesta is not None:
+                raise CashierError(
+                    "No se puede deshacer una falta que ya fue repuesta."
+                )
         elif asistencia.estado != "asistio":
             raise CashierError("Solo se puede deshacer una asistencia.")
 
