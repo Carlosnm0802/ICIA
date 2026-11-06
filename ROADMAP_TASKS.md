@@ -79,7 +79,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: sesiones programadas visibles y editables según reglas.
 - [x] **Tarea 4.3** — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra.
   - Entregable: sesión cancelada y sesión extra funcionando.
-- [ ] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
+- [x] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
   - Entregable: dos marcas de pago independientes por sesión.
 - [ ] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
   - Entregable: corte de honorarios por sesión.
@@ -115,8 +115,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **194 passed**.
-- Fase 4 en curso: **Tareas 4.1, 4.2 y 4.3 completadas** (CRUD de sucursales/grupos, generación automática de sesiones y cancelación/reactivación con sesiones extra).
-- Siguiente tarea recomendada: **Tarea 4.4 — Sustitución de docente titular por suplente en una sesión específica**.
+- Suite de pruebas: **200 passed**.
+- Fase 4 en curso: **Tareas 4.1, 4.2, 4.3 y 4.4 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra y sustitución de docentes con marcas independientes).
+- Siguiente tarea recomendada: **Tarea 4.5 — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

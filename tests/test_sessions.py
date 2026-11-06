@@ -975,3 +975,375 @@ def test_pos_muestra_sesion_extra(
     resp = client.get(f"/pos?sucursal_id={sucursal_id}&grupo_id={grupo_id}")
     assert resp.status_code == 200
     assert "Programada · Extra" in resp.text
+
+
+def _crear_maestro(
+    factory: sessionmaker[Session],
+    nombre: str,
+    activo: int = 1,
+) -> int:
+    with factory() as session:
+        maestro = Maestro(nombre=nombre, activo=activo)
+        session.add(maestro)
+        session.commit()
+        return maestro.id
+
+
+def _marca_de(
+    factory: sessionmaker[Session],
+    sesion_id: int,
+    maestro_id: int,
+) -> SesionMaestro:
+    with factory() as session:
+        marca = session.scalar(
+            select(SesionMaestro).where(
+                SesionMaestro.sesion_id == sesion_id,
+                SesionMaestro.maestro_id == maestro_id,
+            )
+        )
+        assert marca is not None
+        return marca
+
+
+def test_sustituir_maestro_sesion_exitoso(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    fecha = (date.today() + timedelta(days=20)).isoformat()
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        fecha,
+        maestro_ids=(maestros[0], maestros[1]),
+    )
+    suplente_id = _crear_maestro(factory, "Suplente de Inglés")
+    marca = _marca_de(factory, sesion_id, maestros[0])
+
+    resp = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        data={"marca_id": marca.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "sustituida=1" in resp.headers["location"]
+
+    with factory() as session:
+        marca_actual = session.get(SesionMaestro, marca.id)
+        assert marca_actual is not None
+        assert marca_actual.maestro_id == suplente_id
+        assert marca_actual.maestro_titular_id == maestros[0]
+        assert marca_actual.pagado == 0
+        assert marca_actual.fecha_pago is None
+
+        otra_marca = session.scalar(
+            select(SesionMaestro).where(
+                SesionMaestro.sesion_id == sesion_id,
+                SesionMaestro.maestro_id == maestros[1],
+            )
+        )
+        assert otra_marca is not None
+        assert otra_marca.pagado == 0
+
+        marca_actual.pagado = 1
+        session.commit()
+
+    with factory() as session:
+        otra_marca = session.scalar(
+            select(SesionMaestro).where(
+                SesionMaestro.sesion_id == sesion_id,
+                SesionMaestro.maestro_id == maestros[1],
+            )
+        )
+        assert otra_marca is not None
+        assert otra_marca.pagado == 0
+
+
+def test_sustituir_maestro_sesion_rechaza_casos_invalidos(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    suplente_id = _crear_maestro(factory, "Suplente Válido")
+    inactivo_id = _crear_maestro(factory, "Suplente Inactivo", activo=0)
+
+    sesion_actual = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=21)).isoformat(),
+        maestro_ids=(maestros[0], maestros[1]),
+    )
+    marca_actual = _marca_de(factory, sesion_actual, maestros[0])
+
+    resp_mismo = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_actual}/suplencia",
+        data={"marca_id": marca_actual.id, "suplente_id": maestros[0]},
+        follow_redirects=False,
+    )
+    assert resp_mismo.status_code == 303
+    assert "error=" in resp_mismo.headers["location"]
+
+    resp_ya_asignado = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_actual}/suplencia",
+        data={"marca_id": marca_actual.id, "suplente_id": maestros[1]},
+        follow_redirects=False,
+    )
+    assert resp_ya_asignado.status_code == 303
+    assert "error=" in resp_ya_asignado.headers["location"]
+
+    resp_inactivo = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_actual}/suplencia",
+        data={"marca_id": marca_actual.id, "suplente_id": inactivo_id},
+        follow_redirects=False,
+    )
+    assert resp_inactivo.status_code == 303
+    assert "error=" in resp_inactivo.headers["location"]
+
+    sesion_cancelada = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=22)).isoformat(),
+        estado="cancelada",
+        maestro_ids=(maestros[0],),
+    )
+    marca_cancelada = _marca_de(factory, sesion_cancelada, maestros[0])
+    resp_cancelada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_cancelada}/suplencia",
+        data={"marca_id": marca_cancelada.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp_cancelada.status_code == 303
+    assert "error=" in resp_cancelada.headers["location"]
+
+    sesion_pagada = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=23)).isoformat(),
+        maestro_ids=(maestros[0],),
+    )
+    marca_pagada = _marca_de(factory, sesion_pagada, maestros[0])
+    with factory() as session:
+        marca_db = session.get(SesionMaestro, marca_pagada.id)
+        assert marca_db is not None
+        marca_db.pagado = 1
+        session.commit()
+
+    resp_pagada = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_pagada}/suplencia",
+        data={"marca_id": marca_pagada.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp_pagada.status_code == 303
+    assert "error=" in resp_pagada.headers["location"]
+
+    resp_marca_ajena = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_actual}/suplencia",
+        data={"marca_id": marca_pagada.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp_marca_ajena.status_code == 303
+    assert "error=" in resp_marca_ajena.headers["location"]
+
+
+def test_restaurar_titular_sesion(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=24)).isoformat(),
+        maestro_ids=(maestros[0],),
+    )
+    suplente_id = _crear_maestro(factory, "Suplente Temporal")
+    marca = _marca_de(factory, sesion_id, maestros[0])
+
+    resp_sustituir = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        data={"marca_id": marca.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp_sustituir.status_code == 303
+    assert "sustituida=1" in resp_sustituir.headers["location"]
+
+    resp_restaurar = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia/restaurar",
+        data={"marca_id": marca.id},
+        follow_redirects=False,
+    )
+    assert resp_restaurar.status_code == 303
+    assert "restaurada=1" in resp_restaurar.headers["location"]
+
+    with factory() as session:
+        marca_actual = session.get(SesionMaestro, marca.id)
+        assert marca_actual is not None
+        assert marca_actual.maestro_id == maestros[0]
+        assert marca_actual.maestro_titular_id is None
+        assert marca_actual.pagado == 0
+
+    resp_no_suplencia = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia/restaurar",
+        data={"marca_id": marca.id},
+        follow_redirects=False,
+    )
+    assert resp_no_suplencia.status_code == 303
+    assert "error=" in resp_no_suplencia.headers["location"]
+
+
+def test_restaurar_titular_rechaza_marca_pagada(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=25)).isoformat(),
+        maestro_ids=(maestros[0],),
+    )
+    suplente_id = _crear_maestro(factory, "Suplente Pagado")
+    marca = _marca_de(factory, sesion_id, maestros[0])
+
+    client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        data={"marca_id": marca.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    with factory() as session:
+        marca_db = session.get(SesionMaestro, marca.id)
+        assert marca_db is not None
+        marca_db.pagado = 1
+        session.commit()
+
+    resp = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia/restaurar",
+        data={"marca_id": marca.id},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "error=" in resp.headers["location"]
+
+
+def test_sincronizacion_conserva_sesion_con_suplencia(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    sucursal_id, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    suplente_id = _crear_maestro(factory, "Suplente Permanente")
+
+    with factory() as session:
+        grupo = session.get(Grupo, grupo_id)
+        assert grupo is not None
+        sessions_service.generar_sesiones_grupo(session, grupo)
+        session.commit()
+        sesion = session.scalar(
+            select(Sesion)
+            .where(
+                Sesion.grupo_id == grupo_id,
+                Sesion.estado == "programada",
+            )
+            .order_by(Sesion.fecha.asc())
+            .limit(1)
+        )
+        assert sesion is not None
+        sesion_id = sesion.id
+        marca = session.scalar(
+            select(SesionMaestro).where(SesionMaestro.sesion_id == sesion_id)
+        )
+        assert marca is not None
+        marca_id = marca.id
+        sessions_service.sustituir_maestro_sesion(
+            session,
+            grupo_id,
+            sesion_id,
+            marca_id,
+            suplente_id,
+        )
+
+    resp = client.post(
+        f"/grupos/{grupo_id}",
+        data={
+            "sucursal_id": sucursal_id,
+            "nombre": "Jueves 3-5 PM",
+            "dias_semana": ["Viernes"],
+            "hora_inicio": "15:00",
+            "hora_fin": "17:00",
+            "precio": "140.00",
+            "bloque_materia": ["ingles", "robotica"],
+            "bloque_duracion": [60, 60],
+            "bloque_maestro": [maestros[0], maestros[1]],
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+
+    with factory() as session:
+        sesion_sustituida = session.get(Sesion, sesion_id)
+        assert sesion_sustituida is not None
+        marca_db = session.get(SesionMaestro, marca_id)
+        assert marca_db is not None
+        assert marca_db.maestro_id == suplente_id
+        assert marca_db.maestro_titular_id is not None
+
+        sesiones_viernes = list(
+            session.scalars(
+                select(Sesion).where(
+                    Sesion.grupo_id == grupo_id,
+                    Sesion.id != sesion_id,
+                )
+            )
+        )
+        assert sesiones_viernes
+        assert all(
+            date.fromisoformat(sesion.fecha).weekday() == 4
+            for sesion in sesiones_viernes
+        )
+
+
+def test_pantalla_suplencia_muestra_docentes_y_acciones(
+    sessions_app: tuple[TestClient, sessionmaker[Session]],
+) -> None:
+    client, factory = sessions_app
+    _, grupo_id = _ref_ids(factory)
+    maestros = _maestro_ids(factory)
+    sesion_id = _crear_sesion(
+        factory,
+        grupo_id,
+        (date.today() + timedelta(days=26)).isoformat(),
+        maestro_ids=(maestros[0], maestros[1]),
+    )
+    suplente_id = _crear_maestro(factory, "Suplente de Pantalla")
+
+    resp = client.get(f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia")
+    assert resp.status_code == 200
+    assert "ICIA" in resp.text
+    assert "Docentes de la sesión" in resp.text
+    assert "Selecciona suplente" in resp.text
+    assert "Suplente de Pantalla" in resp.text
+    for dominio in ("unpkg", "cdnjs", "jsdelivr", "googleapis"):
+        assert dominio not in resp.text
+
+    marca = _marca_de(factory, sesion_id, maestros[0])
+    resp_sustituir = client.post(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        data={"marca_id": marca.id, "suplente_id": suplente_id},
+        follow_redirects=False,
+    )
+    assert resp_sustituir.status_code == 303
+
+    resp_actualizada = client.get(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia?sustituida=1"
+    )
+    assert "Sustitución registrada" in resp_actualizada.text
+    assert "Restaurar titular" in resp_actualizada.text
+    assert "Suplente" in resp_actualizada.text
+
+    resp_sesiones = client.get(f"/grupos/{grupo_id}/sesiones")
+    assert "Con suplencia" in resp_sesiones.text
+    assert "Cambiar suplente" in resp_sesiones.text

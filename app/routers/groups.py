@@ -426,6 +426,100 @@ def reactivar_sesion(
     return _destino(f"/grupos/{grupo_id}/sesiones", reactivada="1")
 
 
+@router.get("/{grupo_id}/sesiones/{sesion_id}/suplencia", response_class=HTMLResponse)
+def mostrar_suplencia_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    request: Request,
+    sustituida: Annotated[bool, Query()] = False,
+    restaurada: Annotated[bool, Query()] = False,
+    error: Annotated[str | None, Query(max_length=300)] = None,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    detalle = sessions_service.obtener_sesion_suplencia(db, grupo_id, sesion_id)
+    if detalle is None:
+        return RedirectResponse(url=f"/grupos/{grupo_id}/sesiones", status_code=303)
+
+    ids_actuales = {docente.maestro_id for docente in detalle.docentes}
+    suplentes = [
+        maestro
+        for maestro in catalog.listar_maestros_activos(db)
+        if maestro.id not in ids_actuales
+    ]
+
+    response = templates.TemplateResponse(
+        request=request,
+        name="groups/substitution.html",
+        context={
+            "detalle": detalle,
+            "suplentes": suplentes,
+            "sustituida": sustituida,
+            "restaurada": restaurada,
+            "error": error,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@router.post(
+    "/{grupo_id}/sesiones/{sesion_id}/suplencia",
+    response_model=None,
+)
+def sustituir_maestro_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    marca_id: Annotated[int, Form(ge=1)],
+    suplente_id: Annotated[int, Form(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.sustituir_maestro_sesion(
+            db,
+            grupo_id=grupo_id,
+            sesion_id=sesion_id,
+            marca_id=marca_id,
+            suplente_id=suplente_id,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(
+            f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+            error=str(exc),
+        )
+    return _destino(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        sustituida="1",
+    )
+
+
+@router.post(
+    "/{grupo_id}/sesiones/{sesion_id}/suplencia/restaurar",
+    response_model=None,
+)
+def restaurar_titular_sesion(
+    grupo_id: Annotated[int, PathParam(ge=1)],
+    sesion_id: Annotated[int, PathParam(ge=1)],
+    marca_id: Annotated[int, Form(ge=1)],
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        sessions_service.restaurar_titular_sesion(
+            db,
+            grupo_id=grupo_id,
+            sesion_id=sesion_id,
+            marca_id=marca_id,
+        )
+    except sessions_service.SessionServiceError as exc:
+        return _destino(
+            f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+            error=str(exc),
+        )
+    return _destino(
+        f"/grupos/{grupo_id}/sesiones/{sesion_id}/suplencia",
+        restaurada="1",
+    )
+
+
 @router.post("/{grupo_id}/sesiones/{sesion_id}/reprogramar", response_model=None)
 def reprogramar_sesion(
     grupo_id: Annotated[int, PathParam(ge=1)],

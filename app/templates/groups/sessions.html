@@ -104,7 +104,7 @@
   <div class="section-head">
     <h2 id="sesiones-title">Sesiones del grupo</h2>
     <span class="section-head__hint">
-      Reprograma o cancela solo sesiones de hoy en adelante sin asistencias
+      Reprograma, cancela o registra suplencias sobre las sesiones del grupo
     </span>
   </div>
 
@@ -134,6 +134,9 @@
             <td>
               {% if s.maestros %}
                 {{ s.maestros|join(', ') }}
+                {% if s.tiene_suplencia %}
+                  <span class="badge badge--muted">Con suplencia</span>
+                {% endif %}
               {% else %}
                 <span class="data-table__meta">Sin maestros</span>
               {% endif %}
@@ -184,7 +187,15 @@
                     </button>
                   </form>
                 {% endif %}
-                {% if not s.puede_reprogramar and not s.puede_cancelar and not s.puede_reactivar %}
+                {% if s.puede_sustituir %}
+                  <a
+                    class="button button--ghost button--sm"
+                    href="/grupos/{{ resumen.grupo_id }}/sesiones/{{ s.id }}/suplencia"
+                  >
+                    {{ 'Cambiar suplente' if s.tiene_suplencia else 'Sustituir docente' }}
+                  </a>
+                {% endif %}
+                {% if not s.puede_reprogramar and not s.puede_cancelar and not s.puede_reactivar and not s.puede_sustituir %}
                   <span class="data-table__meta">
                     {% if s.asistencias_total > 0 %}
                       Con asistencias

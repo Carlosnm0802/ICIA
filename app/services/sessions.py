@@ -6,7 +6,7 @@ from typing import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.config import SESSION_HORIZON_WEEKS
 from app.models import Asistencia, BloqueGrupo, Grupo, Maestro, Sesion, SesionMaestro, Sucursal
@@ -37,6 +37,33 @@ class SesionItem:
     puede_reprogramar: bool
     puede_cancelar: bool
     puede_reactivar: bool
+    tiene_suplencia: bool
+    puede_sustituir: bool
+
+
+@dataclass(frozen=True)
+class DocenteSesion:
+    marca_id: int
+    maestro_id: int
+    nombre: str
+    pagado: bool
+    fecha_pago: str | None
+    titular_id: int | None
+    titular_nombre: str | None
+    puede_sustituir: bool
+    puede_restaurar: bool
+
+
+@dataclass(frozen=True)
+class SesionSuplenciaResumen:
+    sesion_id: int
+    grupo_id: int
+    grupo_nombre: str
+    sucursal_nombre: str
+    fecha: str
+    estado: str
+    es_extra: bool
+    docentes: tuple[DocenteSesion, ...]
 
 
 @dataclass(frozen=True)
@@ -192,6 +219,11 @@ def sincronizar_sesiones_grupo(
             .where(SesionMaestro.pagado == 1)
             .distinct()
         )
+        sesiones_con_suplencia = (
+            select(SesionMaestro.sesion_id)
+            .where(SesionMaestro.maestro_titular_id.is_not(None))
+            .distinct()
+        )
 
         candidatas = list(
             db.scalars(
@@ -202,6 +234,7 @@ def sincronizar_sesiones_grupo(
                     Sesion.es_extra == 0,
                     Sesion.id.not_in(sesiones_con_asistencia),
                     Sesion.id.not_in(sesiones_con_pago_maestro),
+                    Sesion.id.not_in(sesiones_con_suplencia),
                 )
             )
         )
@@ -262,16 +295,27 @@ def listar_sesiones_grupo(
 
     maestros_por_sesion: dict[int, list[str]] = {}
     sesiones_con_honorarios_pagados: set[int] = set()
+    sesiones_con_suplencia: set[int] = set()
+    sesiones_con_marca_sin_pagar: set[int] = set()
     filas_maestros = db.execute(
-        select(SesionMaestro.sesion_id, Maestro.nombre, SesionMaestro.pagado)
+        select(
+            SesionMaestro.sesion_id,
+            Maestro.nombre,
+            SesionMaestro.pagado,
+            SesionMaestro.maestro_titular_id,
+        )
         .join(Maestro, Maestro.id == SesionMaestro.maestro_id)
         .where(SesionMaestro.sesion_id.in_([s.id for s in sesiones] or [0]))
         .order_by(Maestro.nombre)
     ).all()
-    for s_id, m_nombre, m_pagado in filas_maestros:
+    for s_id, m_nombre, m_pagado, m_titular_id in filas_maestros:
         maestros_por_sesion.setdefault(s_id, []).append(m_nombre)
         if m_pagado == 1:
             sesiones_con_honorarios_pagados.add(s_id)
+        else:
+            sesiones_con_marca_sin_pagar.add(s_id)
+        if m_titular_id is not None:
+            sesiones_con_suplencia.add(s_id)
 
     items: list[SesionItem] = []
     tot_prog = 0
@@ -303,6 +347,10 @@ def listar_sesiones_grupo(
             and s.fecha >= hoy_iso
             and not con_datos
         )
+        puede_sustituir = (
+            s.estado != "cancelada"
+            and s.id in sesiones_con_marca_sin_pagar
+        )
 
         items.append(
             SesionItem(
@@ -315,6 +363,8 @@ def listar_sesiones_grupo(
                 puede_reprogramar=puede_reprogramar,
                 puede_cancelar=puede_cancelar,
                 puede_reactivar=puede_reactivar,
+                tiene_suplencia=s.id in sesiones_con_suplencia,
+                puede_sustituir=puede_sustituir,
             )
         )
 
@@ -382,6 +432,205 @@ def _validar_sin_datos(db: Session, sesion: Sesion, accion: str) -> None:
         raise SessionServiceError(
             f"No se puede {accion} una sesión con honorarios de maestros ya pagados."
         )
+
+
+def _obtener_marca_sesion(
+    db: Session,
+    sesion_id: int,
+    marca_id: int,
+) -> SesionMaestro:
+    marca = db.scalar(
+        select(SesionMaestro).where(
+            SesionMaestro.id == marca_id,
+            SesionMaestro.sesion_id == sesion_id,
+        )
+    )
+    if marca is None:
+        raise SessionServiceError(
+            "La marca de pago del docente no existe para esta sesión."
+        )
+    return marca
+
+
+def _maestro_ya_asignado(
+    db: Session,
+    sesion_id: int,
+    maestro_id: int,
+    excluir_marca_id: int,
+) -> bool:
+    return (
+        db.scalar(
+            select(SesionMaestro.id).where(
+                SesionMaestro.sesion_id == sesion_id,
+                SesionMaestro.maestro_id == maestro_id,
+                SesionMaestro.id != excluir_marca_id,
+            )
+        )
+        is not None
+    )
+
+
+def obtener_sesion_suplencia(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+) -> SesionSuplenciaResumen | None:
+    sesion = db.scalar(
+        select(Sesion).where(
+            Sesion.id == sesion_id,
+            Sesion.grupo_id == grupo_id,
+        )
+    )
+    if sesion is None:
+        return None
+
+    grupo = db.scalar(select(Grupo).where(Grupo.id == sesion.grupo_id))
+    if grupo is None:
+        return None
+    sucursal = db.scalar(select(Sucursal).where(Sucursal.id == grupo.sucursal_id))
+
+    titular = aliased(Maestro)
+    filas = db.execute(
+        select(SesionMaestro, Maestro.nombre, titular.nombre)
+        .join(Maestro, Maestro.id == SesionMaestro.maestro_id)
+        .outerjoin(titular, titular.id == SesionMaestro.maestro_titular_id)
+        .where(SesionMaestro.sesion_id == sesion.id)
+        .order_by(Maestro.nombre)
+    ).all()
+
+    docentes: list[DocenteSesion] = []
+    for marca, nombre, titular_nombre in filas:
+        sin_pagar = marca.pagado == 0
+        puede_sustituir = sesion.estado != "cancelada" and sin_pagar
+        docentes.append(
+            DocenteSesion(
+                marca_id=marca.id,
+                maestro_id=marca.maestro_id,
+                nombre=nombre,
+                pagado=bool(marca.pagado),
+                fecha_pago=marca.fecha_pago,
+                titular_id=marca.maestro_titular_id,
+                titular_nombre=titular_nombre,
+                puede_sustituir=puede_sustituir,
+                puede_restaurar=(
+                    puede_sustituir and marca.maestro_titular_id is not None
+                ),
+            )
+        )
+
+    return SesionSuplenciaResumen(
+        sesion_id=sesion.id,
+        grupo_id=grupo.id,
+        grupo_nombre=grupo.nombre,
+        sucursal_nombre=sucursal.nombre if sucursal else "",
+        fecha=sesion.fecha,
+        estado=sesion.estado,
+        es_extra=bool(sesion.es_extra),
+        docentes=tuple(docentes),
+    )
+
+
+def sustituir_maestro_sesion(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+    marca_id: int,
+    suplente_id: int,
+) -> SesionMaestro:
+    sesion = _obtener_sesion_grupo(db, grupo_id, sesion_id)
+    if sesion.estado == "cancelada":
+        raise SessionServiceError(
+            "No se puede sustituir un docente en una sesión cancelada."
+        )
+
+    marca = _obtener_marca_sesion(db, sesion.id, marca_id)
+    if marca.pagado == 1:
+        raise SessionServiceError(
+            "No se puede sustituir un docente con honorarios ya pagados."
+        )
+
+    suplente = db.scalar(
+        select(Maestro).where(
+            Maestro.id == suplente_id,
+            Maestro.activo == 1,
+        )
+    )
+    if suplente is None:
+        raise SessionServiceError("El maestro suplente no existe o está inactivo.")
+
+    if suplente.id == marca.maestro_id:
+        raise SessionServiceError(
+            "El maestro suplente debe ser distinto del docente actual."
+        )
+
+    titular_original_id = marca.maestro_titular_id or marca.maestro_id
+    if suplente.id == titular_original_id:
+        raise SessionServiceError(
+            "El docente elegido es el titular original; usa la opción Restaurar titular."
+        )
+
+    if _maestro_ya_asignado(db, sesion.id, suplente.id, marca.id):
+        raise SessionServiceError(
+            "El maestro suplente ya está asignado a esta sesión."
+        )
+
+    marca.maestro_titular_id = titular_original_id
+    marca.maestro_id = suplente.id
+    marca.pagado = 0
+    marca.fecha_pago = None
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise SessionServiceError(
+            "El maestro suplente ya está asignado a esta sesión."
+        ) from exc
+
+    db.refresh(marca)
+    return marca
+
+
+def restaurar_titular_sesion(
+    db: Session,
+    grupo_id: int,
+    sesion_id: int,
+    marca_id: int,
+) -> SesionMaestro:
+    sesion = _obtener_sesion_grupo(db, grupo_id, sesion_id)
+    if sesion.estado == "cancelada":
+        raise SessionServiceError(
+            "No se puede restaurar un titular en una sesión cancelada."
+        )
+
+    marca = _obtener_marca_sesion(db, sesion.id, marca_id)
+    if marca.pagado == 1:
+        raise SessionServiceError(
+            "No se puede restaurar un titular con honorarios ya pagados."
+        )
+    if marca.maestro_titular_id is None:
+        raise SessionServiceError(
+            "La marca del docente no corresponde a una suplencia."
+        )
+
+    titular_id = marca.maestro_titular_id
+    if _maestro_ya_asignado(db, sesion.id, titular_id, marca.id):
+        raise SessionServiceError(
+            "El maestro titular ya está asignado a esta sesión."
+        )
+
+    marca.maestro_id = titular_id
+    marca.maestro_titular_id = None
+    marca.fecha_pago = None
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise SessionServiceError(
+            "El maestro titular ya está asignado a esta sesión."
+        ) from exc
+
+    db.refresh(marca)
+    return marca
 
 
 def cancelar_sesion(
