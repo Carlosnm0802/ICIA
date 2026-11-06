@@ -59,6 +59,14 @@
           <span>Grupos</span>
         </a>
         <a
+          class="rail__link{% if request.url.path.startswith('/pagos-maestros') %} rail__link--active{% endif %}"
+          href="/pagos-maestros"
+          {% if request.url.path.startswith('/pagos-maestros') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▩</span>
+          <span>Pago a maestros</span>
+        </a>
+        <a
           class="rail__link{% if request.url.path.startswith('/sucursales') %} rail__link--active{% endif %}"
           href="/sucursales"
           {% if request.url.path.startswith('/sucursales') %}aria-current="page"{% endif %}

@@ -81,7 +81,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: sesión cancelada y sesión extra funcionando.
 - [x] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
   - Entregable: dos marcas de pago independientes por sesión.
-- [ ] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
+- [x] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
   - Entregable: corte de honorarios por sesión.
 - [ ] **Tarea 4.6** — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa.
   - Entregable: datos personales y fotos gestionados sin inflar la base.
@@ -115,8 +115,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **200 passed**.
-- Fase 4 en curso: **Tareas 4.1, 4.2, 4.3 y 4.4 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra y sustitución de docentes con marcas independientes).
-- Siguiente tarea recomendada: **Tarea 4.5 — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos**.
+- Suite de pruebas: **207 passed**.
+- Fase 4 en curso: **Tareas 4.1, 4.2, 4.3, 4.4 y 4.5 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra, sustitución de docentes con marcas independientes y corte de honorarios con marcado individual o en lote).
+- Siguiente tarea recomendada: **Tarea 4.6 — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.
