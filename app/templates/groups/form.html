@@ -169,7 +169,7 @@
               <select class="form-field__input" name="bloque_maestro" required>
                 {% for maestro in maestros %}
                   <option value="{{ maestro.id }}" {% if bloque.maestro_id == maestro.id %}selected{% endif %}>
-                    {{ maestro.nombre }}
+                    {{ maestro.nombre }}{% if not maestro.activo %} (inactivo){% endif %}
                   </option>
                 {% endfor %}
               </select>
@@ -209,7 +209,9 @@
             <span class="form-field__label">Maestro</span>
             <select class="form-field__input" name="bloque_maestro" required>
               {% for maestro in maestros %}
-                <option value="{{ maestro.id }}">{{ maestro.nombre }}</option>
+                <option value="{{ maestro.id }}">
+                  {{ maestro.nombre }}{% if not maestro.activo %} (inactivo){% endif %}
+                </option>
               {% endfor %}
             </select>
           </label>

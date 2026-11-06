@@ -83,7 +83,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
   - Entregable: dos marcas de pago independientes por sesión.
 - [x] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
   - Entregable: corte de honorarios por sesión.
-- [ ] **Tarea 4.6** — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa.
+- [x] **Tarea 4.6** — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa.
   - Entregable: datos personales y fotos gestionados sin inflar la base.
 - [ ] **Tarea 4.7** — Consulta de asistencia por grupo y fechas.
   - Entregable: historial de asistencia exportable/consultable.
@@ -115,8 +115,8 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **207 passed**.
-- Fase 4 en curso: **Tareas 4.1, 4.2, 4.3, 4.4 y 4.5 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra, sustitución de docentes con marcas independientes y corte de honorarios con marcado individual o en lote).
-- Siguiente tarea recomendada: **Tarea 4.6 — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa**.
+- Suite de pruebas: **223 passed**.
+- Fase 4 en curso: **Tareas 4.1, 4.2, 4.3, 4.4, 4.5 y 4.6 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra, sustitución de docentes con marcas independientes, corte de honorarios con marcado individual o en lote, y CRUD de alumnos/maestros con fotos locales, baja con historial y ficha completa).
+- Siguiente tarea recomendada: **Tarea 4.7 — Consulta de asistencia por grupo y fechas**.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

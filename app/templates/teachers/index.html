@@ -1,0 +1,151 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Maestros · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Personas</p>
+    <h1>Maestros</h1>
+    <p class="page-head__meta">
+      {% if maestros|length == 1 %}
+        1 maestro
+      {% else %}
+        {{ maestros|length }} maestros
+      {% endif %}
+      {% if estado != 'todos' %} · {{ 'activos' if estado == 'activo' else 'inactivos' }}{% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/alumnos">Ver alumnos</a>
+    <a class="button button--primary" href="/maestros/nuevo">Nuevo maestro</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if actualizado %}
+  <div class="notice notice--success" role="status">Maestro actualizado.</div>
+{% endif %}
+
+<section class="panel panel--tight" aria-label="Filtros de maestros">
+  <form class="filter-bar" method="get" action="/maestros">
+    <label class="filter-bar__field">
+      <span class="label">Buscar</span>
+      <input
+        class="filter-bar__select"
+        type="search"
+        name="q"
+        value="{{ q }}"
+        maxlength="120"
+        placeholder="Nombre, especialidad o correo"
+        autocomplete="off"
+      >
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Estado</span>
+      <select class="filter-bar__select" name="estado">
+        <option value="activo" {% if estado == 'activo' %}selected{% endif %}>Activos</option>
+        <option value="inactivo" {% if estado == 'inactivo' %}selected{% endif %}>Inactivos</option>
+        <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+      </select>
+    </label>
+    <button class="button button--ghost" type="submit">Filtrar</button>
+    <a class="button button--ghost" href="/maestros">Limpiar</a>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="maestros-title">
+  <div class="section-head">
+    <h2 id="maestros-title">Listado de maestros</h2>
+    <span class="section-head__hint">La baja conserva sesiones y marcas de pago</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Maestro</th>
+          <th scope="col">Especialidad</th>
+          <th scope="col">Grupos activos</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for maestro in maestros %}
+          <tr>
+            <td>
+              <div class="person-cell">
+                <span class="person-avatar person-avatar--sm" aria-hidden="true">
+                  {% if maestro.foto_ruta %}
+                    <img src="/maestros/{{ maestro.id }}/foto" alt="">
+                  {% else %}
+                    {{ maestro.nombre[:1] }}
+                  {% endif %}
+                </span>
+                <div>
+                  <strong>{{ maestro.nombre }}</strong>
+                  {% if maestro.telefono %}
+                    <small class="data-table__meta">{{ maestro.telefono }}</small>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td>
+              {{ maestro.especialidad or '—' }}
+              {% if maestro.correo %}
+                <small class="data-table__meta">{{ maestro.correo }}</small>
+              {% endif %}
+            </td>
+            <td class="tabular">{{ maestro.grupos_activos }}</td>
+            <td>
+              {% if maestro.activo %}
+                <span class="badge badge--ok">Activo</span>
+              {% else %}
+                <span class="badge badge--muted">Inactivo</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                <a class="button button--primary button--sm" href="/maestros/{{ maestro.id }}">
+                  Ficha
+                </a>
+                <a class="button button--ghost button--sm" href="/maestros/{{ maestro.id }}/editar">
+                  Editar
+                </a>
+                <form
+                  method="post"
+                  action="/maestros/{{ maestro.id }}/estado"
+                  onsubmit="return confirm('¿Cambiar el estado del maestro?')"
+                >
+                  <input
+                    type="hidden"
+                    name="activo"
+                    value="{{ '0' if maestro.activo else '1' }}"
+                  >
+                  <button
+                    class="button button--sm {{ 'button--ghost' if maestro.activo else 'button--primary' }}"
+                    type="submit"
+                  >
+                    {{ 'Dar de baja' if maestro.activo else 'Reactivar' }}
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                No hay maestros que coincidan con el filtro.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -27,6 +27,14 @@
           <span>Dashboard</span>
         </a>
         <a
+          class="rail__link{% if request.url.path.startswith('/alumnos') %} rail__link--active{% endif %}"
+          href="/alumnos"
+          {% if request.url.path.startswith('/alumnos') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">◎</span>
+          <span>Alumnos</span>
+        </a>
+        <a
           class="rail__link{% if request.url.path.startswith('/pos') %} rail__link--active{% endif %}"
           href="/pos"
           {% if request.url.path.startswith('/pos') %}aria-current="page"{% endif %}
@@ -57,6 +65,14 @@
         >
           <span class="rail__icon" aria-hidden="true">▦</span>
           <span>Grupos</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/maestros') %} rail__link--active{% endif %}"
+          href="/maestros"
+          {% if request.url.path.startswith('/maestros') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">◫</span>
+          <span>Maestros</span>
         </a>
         <a
           class="rail__link{% if request.url.path.startswith('/pagos-maestros') %} rail__link--active{% endif %}"

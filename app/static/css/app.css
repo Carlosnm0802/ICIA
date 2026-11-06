@@ -1731,7 +1731,220 @@ textarea {
   gap: var(--space-md);
 }
 
+.form-field__input--area {
+  min-height: 108px;
+  padding: 0.75rem 0.85rem;
+  resize: vertical;
+}
+
+.person-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.person-avatar {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.person-avatar--sm {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  font-size: 0.9375rem;
+}
+
+.person-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.person-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-lg);
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-xl);
+  background: var(--surface-container-lowest);
+  box-shadow: var(--shadow-1);
+}
+
+.person-hero__photo {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  overflow: hidden;
+  place-items: center;
+  border: 4px solid var(--surface-container-low);
+  border-radius: 50%;
+  background: var(--primary-fixed);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.person-hero__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.person-hero__body {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.person-hero__body h1 {
+  font-size: clamp(1.75rem, 3vw, 2.4rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.person-hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.person-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.person-layout {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+}
+
+.detail-list > div {
+  display: grid;
+  gap: 0.2rem;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.detail-list dt {
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.detail-list dd {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.inline-form {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-end;
+  margin-bottom: var(--space-md);
+}
+
+.inline-form .form-field {
+  flex: 1;
+}
+
+.section-empty {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  border: 1px dashed var(--slate-300);
+  border-radius: var(--radius-md);
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.photo-field {
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+}
+
+.photo-field__preview {
+  width: 132px;
+  height: 132px;
+  overflow: hidden;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
+}
+
+.photo-field__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-field__empty {
+  display: grid;
+  width: 132px;
+  min-height: 92px;
+  place-items: center;
+  border: 1px dashed var(--slate-300);
+  border-radius: var(--radius-lg);
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.photo-field__remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+}
+
 @media (max-width: 960px) {
+  .person-hero {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .person-hero__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .app-shell {
     display: block;
   }
@@ -1803,6 +2016,19 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .person-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .person-hero__photo {
+    width: 88px;
+    height: 88px;
+  }
+
+  .person-hero__actions .button {
+    flex: 1;
+  }
+
   .rail__brand-text {
     display: none;
   }

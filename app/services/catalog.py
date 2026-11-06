@@ -312,6 +312,31 @@ def listar_maestros_activos(db: Session) -> list[Maestro]:
     )
 
 
+def listar_maestros_para_grupo(
+    db: Session,
+    grupo_id: int | None = None,
+) -> list[Maestro]:
+    activos = listar_maestros_activos(db)
+    if grupo_id is None:
+        return activos
+    inactivos = list(
+        db.scalars(
+            select(Maestro)
+            .join(BloqueGrupo, BloqueGrupo.maestro_id == Maestro.id)
+            .where(
+                BloqueGrupo.grupo_id == grupo_id,
+                Maestro.activo == 0,
+            )
+            .distinct()
+            .order_by(Maestro.nombre)
+        )
+    )
+    return sorted(
+        activos + inactivos,
+        key=lambda maestro: maestro.nombre.casefold(),
+    )
+
+
 def _describir_bloques(db: Session, grupo: Grupo) -> tuple[str, ...]:
     filas = db.execute(
         select(BloqueGrupo, Maestro.nombre)
@@ -398,15 +423,18 @@ def _validar_bloques(
     db: Session,
     bloques: list[BloqueForm],
     duracion_total: int,
+    permitidos: set[int] | None = None,
 ) -> None:
     if not bloques:
         raise CatalogError("El grupo necesita al menos un bloque.")
     if len(bloques) > 10:
         raise CatalogError("El grupo tiene demasiados bloques.")
 
-    maestros_activos = set(
+    maestros_validos = set(
         db.scalars(select(Maestro.id).where(Maestro.activo == 1))
     )
+    if permitidos:
+        maestros_validos.update(permitidos)
     suma = 0
     for esperado, bloque in enumerate(bloques, start=1):
         if bloque.orden != esperado:
@@ -419,9 +447,9 @@ def _validar_bloques(
             raise CatalogError(
                 "La duración de cada bloque debe ser mayor a cero."
             )
-        if bloque.maestro_id not in maestros_activos:
+        if bloque.maestro_id not in maestros_validos:
             raise CatalogError(
-                "Cada bloque necesita un maestro activo existente."
+                "Cada bloque necesita un maestro activo o asignado al grupo."
             )
         suma += bloque.duracion_minutos
 
@@ -455,6 +483,7 @@ def _datos_grupo(
     precio: str,
     bloques: list[BloqueForm],
     excluir_id: int | None,
+    permitidos: set[int] | None = None,
 ) -> tuple[str, str, str, str, int]:
     sucursal = db.scalar(
         select(Sucursal).where(
@@ -478,7 +507,7 @@ def _datos_grupo(
         )
 
     precio_centavos = parse_precio(precio)
-    _validar_bloques(db, bloques, duracion_total)
+    _validar_bloques(db, bloques, duracion_total, permitidos)
 
     return (
         nombre_limpio,
@@ -558,6 +587,13 @@ def actualizar_grupo(
     if grupo is None:
         raise CatalogError("El grupo no existe.")
 
+    permitidos = set(
+        db.scalars(
+            select(BloqueGrupo.maestro_id).where(
+                BloqueGrupo.grupo_id == grupo.id
+            )
+        )
+    )
     (
         nombre_limpio,
         dias,
@@ -574,6 +610,7 @@ def actualizar_grupo(
         precio,
         bloques,
         grupo.id,
+        permitidos,
     )
 
     grupo.sucursal_id = sucursal_id

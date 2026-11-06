@@ -58,7 +58,10 @@ def _contexto_formulario_grupo(
 ) -> dict:
     return {
         "sucursales": catalog.listar_sucursales_admin(db),
-        "maestros": catalog.listar_maestros_activos(db),
+        "maestros": catalog.listar_maestros_para_grupo(
+            db,
+            grupo.grupo.id if grupo else None,
+        ),
         "dias_semana": catalog.DIAS_SEMANA,
         "materias": catalog.MATERIAS,
         "detalle": grupo,

@@ -1,0 +1,299 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ ficha.alumno.nombre }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="person-hero">
+  <div class="person-hero__photo">
+    {% if ficha.alumno.foto_ruta %}
+      <img src="/alumnos/{{ ficha.alumno.id }}/foto" alt="Foto de {{ ficha.alumno.nombre }}">
+    {% else %}
+      <span aria-hidden="true">{{ ficha.alumno.nombre[:1] }}</span>
+    {% endif %}
+  </div>
+  <div class="person-hero__body">
+    <p class="eyebrow">Ficha del alumno</p>
+    <h1>{{ ficha.alumno.nombre }}</h1>
+    <p class="page-head__meta">
+      {{ 'Activo' if ficha.alumno.estado == 'activo' else 'Dado de baja' }}
+      · Inscripción {{ ficha.alumno.fecha_inscripcion|fecha }}
+      · {{ ficha.total_asistio }} asistencias · {{ ficha.total_falto }} faltas
+    </p>
+    <div class="person-hero__badges">
+      {% if ficha.alumno.estado == 'activo' %}
+        <span class="badge badge--ok">Activo</span>
+      {% else %}
+        <span class="badge badge--muted">Baja</span>
+      {% endif %}
+      <span class="badge">{{ ficha.grupos|selectattr('activa')|list|length }} grupos activos</span>
+    </div>
+  </div>
+  <div class="person-hero__actions">
+    <a class="button button--primary" href="/alumnos/{{ ficha.alumno.id }}/editar">Editar</a>
+    <a class="button button--ghost" href="/alumnos">Volver a alumnos</a>
+    <form
+      method="post"
+      action="/alumnos/{{ ficha.alumno.id }}/estado"
+      onsubmit="return confirm('¿Cambiar el estado del alumno?')"
+    >
+      <input
+        type="hidden"
+        name="estado"
+        value="{{ 'baja' if ficha.alumno.estado == 'activo' else 'activo' }}"
+      >
+      <button
+        class="button {{ 'button--ghost' if ficha.alumno.estado == 'activo' else 'button--primary' }}"
+        type="submit"
+      >
+        {{ 'Dar de baja' if ficha.alumno.estado == 'activo' else 'Reactivar' }}
+      </button>
+    </form>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if creado %}
+  <div class="notice notice--success" role="status">
+    Alumno creado. Asigna un grupo para que aparezca en Cobro Express.
+  </div>
+{% elif actualizado %}
+  <div class="notice notice--success" role="status">Ficha actualizada.</div>
+{% elif grupo_agregado %}
+  <div class="notice notice--success" role="status">Alumno inscrito al grupo.</div>
+{% elif grupo_retirado %}
+  <div class="notice notice--success" role="status">Inscripción cerrada; el historial se conserva.</div>
+{% endif %}
+
+<div class="person-layout">
+  <section class="panel" aria-labelledby="datos-alumno-title">
+    <div class="section-head">
+      <h2 id="datos-alumno-title">Datos personales</h2>
+      <span class="section-head__hint">Ficha {{ ficha.alumno.id }}</span>
+    </div>
+    <dl class="detail-list">
+      <div>
+        <dt>Fecha de nacimiento</dt>
+        <dd>{{ ficha.alumno.fecha_nacimiento|fecha if ficha.alumno.fecha_nacimiento else '—' }}</dd>
+      </div>
+      <div>
+        <dt>Tutor</dt>
+        <dd>{{ ficha.alumno.tutor or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Teléfono del tutor</dt>
+        <dd>{{ ficha.alumno.telefono_tutor or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Escuela de procedencia</dt>
+        <dd>{{ ficha.alumno.escuela_procedencia or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Fecha de inscripción</dt>
+        <dd>{{ ficha.alumno.fecha_inscripcion|fecha }}</dd>
+      </div>
+      <div>
+        <dt>Alergias y notas</dt>
+        <dd>{{ ficha.alumno.alergias_notas or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Personas autorizadas</dt>
+        <dd>{{ ficha.alumno.personas_autorizadas or '—' }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="grupos-alumno-title">
+    <div class="section-head">
+      <h2 id="grupos-alumno-title">Grupos</h2>
+      <span class="section-head__hint">Inscripciones activas e historial</span>
+    </div>
+
+    {% if ficha.alumno.estado == 'activo' %}
+      {% if grupos_disponibles %}
+        <form class="inline-form" method="post" action="/alumnos/{{ ficha.alumno.id }}/grupos">
+          <label class="form-field">
+            <span class="form-field__label">Agregar a un grupo</span>
+            <select class="form-field__input" name="grupo_id" required>
+              <option value="" disabled selected>Selecciona un grupo…</option>
+              {% for grupo in grupos_disponibles %}
+                <option value="{{ grupo.id }}">
+                  {{ grupo.sucursal }} · {{ grupo.nombre }} · {{ grupo.hora_inicio }}–{{ grupo.hora_fin }}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="button button--primary" type="submit">Inscribir</button>
+        </form>
+      {% elif ficha.grupos|selectattr('activa')|list %}
+        <p class="section-empty">El alumno ya está inscrito en todos los grupos activos.</p>
+      {% else %}
+        <p class="section-empty">No hay grupos activos. Crea un grupo para inscribirlo.</p>
+      {% endif %}
+    {% else %}
+      <p class="section-empty">Reactiva al alumno para inscribirlo en un grupo.</p>
+    {% endif %}
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Grupo</th>
+            <th scope="col">Horario</th>
+            <th scope="col">Precio</th>
+            <th scope="col">Inscripción</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for grupo in ficha.grupos %}
+            <tr>
+              <td>
+                <strong>{{ grupo.grupo_nombre }}</strong>
+                <small class="data-table__meta">{{ grupo.sucursal_nombre }}</small>
+              </td>
+              <td>
+                {{ grupo.dias_semana|replace(',', ' · ') }}
+                <small class="data-table__meta">{{ grupo.hora_inicio }}–{{ grupo.hora_fin }}</small>
+              </td>
+              <td class="tabular">{{ grupo.precio_centavos|mxn }}</td>
+              <td>
+                {{ grupo.fecha_alta|fecha }}
+                {% if grupo.fecha_baja %}
+                  <small class="data-table__meta">Baja {{ grupo.fecha_baja|fecha }}</small>
+                {% endif %}
+              </td>
+              <td>
+                {% if grupo.activa %}
+                  <span class="badge badge--ok">Activo</span>
+                {% else %}
+                  <span class="badge badge--muted">Baja</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if grupo.activa %}
+                  <form
+                    method="post"
+                    action="/alumnos/{{ ficha.alumno.id }}/grupos/{{ grupo.inscripcion_id }}/baja"
+                    onsubmit="return confirm('¿Dar de baja al alumno de este grupo?')"
+                  >
+                    <button class="button button--ghost button--sm" type="submit">
+                      Retirar
+                    </button>
+                  </form>
+                {% else %}
+                  <span class="data-table__meta">Conservado</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">El alumno no tiene grupos registrados.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="pagos-alumno-title">
+    <div class="section-head">
+      <h2 id="pagos-alumno-title">Pagos</h2>
+      <span class="section-head__hint">El historial no se borra al dar de baja</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Folio</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Monto</th>
+            <th scope="col">Método</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Ticket</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pago in ficha.pagos %}
+            <tr>
+              <td><strong>{{ pago.folio }}</strong></td>
+              <td>{{ 'Inscripción' if pago.tipo == 'inscripcion' else 'Sesión' }}</td>
+              <td class="tabular">{{ pago.monto_centavos|mxn }}</td>
+              <td>{{ pago.metodo|capitalize }}</td>
+              <td>{{ pago.fecha|fecha_hora }}</td>
+              <td>
+                {% if pago.estado == 'vigente' %}
+                  <span class="badge badge--ok">Vigente</span>
+                {% else %}
+                  <span class="badge badge--muted">Cancelado</span>
+                {% endif %}
+              </td>
+              <td>
+                <a class="button button--ghost button--sm" href="/pos/tickets/{{ pago.id }}" target="_blank" rel="noopener">
+                  Ver
+                </a>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">El alumno no tiene pagos registrados.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="asistencias-alumno-title">
+    <div class="section-head">
+      <h2 id="asistencias-alumno-title">Asistencias recientes</h2>
+      <span class="section-head__hint">Últimos 20 registros</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Grupo</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for asistencia in ficha.asistencias %}
+            <tr>
+              <td>{{ asistencia.fecha|fecha }}</td>
+              <td>
+                {{ asistencia.grupo_nombre }}
+                <small class="data-table__meta">{{ asistencia.sucursal_nombre }}</small>
+              </td>
+              <td>
+                {% if asistencia.estado == 'asistio' %}
+                  <span class="badge badge--ok">Asistió</span>
+                {% else %}
+                  <span class="badge badge--muted">Faltó</span>
+                {% endif %}
+                {% if asistencia.es_reposicion %}
+                  <span class="badge">Reposición</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="3">
+                <div class="empty-state">Sin asistencias registradas.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}
