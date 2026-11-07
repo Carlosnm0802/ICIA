@@ -16,6 +16,8 @@ data/*.db-wal
 data/*.db-shm
 data/photos/*
 !data/photos/.gitkeep
+data/restore/
+data/browser-profile/
 backups/
 *.log
 
@@ -26,6 +28,7 @@ backups/
 dist/
 build/
 *.spec
+!packaging/*.spec
 
 .idea/
 .vscode/

@@ -1,0 +1,164 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Alumnos · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Personas</p>
+    <h1>Alumnos</h1>
+    <p class="page-head__meta">
+      {% if alumnos|length == 1 %}
+        1 alumno
+      {% else %}
+        {{ alumnos|length }} alumnos
+      {% endif %}
+      {% if estado != 'todos' %} · {{ 'activos' if estado == 'activo' else 'dados de baja' }}{% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/maestros">Ver maestros</a>
+    <a class="button button--primary" href="/alumnos/nuevo">Nuevo alumno</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if actualizado %}
+  <div class="notice notice--success" role="status">Alumno actualizado.</div>
+{% endif %}
+
+<section class="panel panel--tight" aria-label="Filtros de alumnos">
+  <form class="filter-bar" method="get" action="/alumnos">
+    <label class="filter-bar__field">
+      <span class="label">Buscar</span>
+      <input
+        class="filter-bar__select"
+        type="search"
+        name="q"
+        value="{{ q }}"
+        maxlength="120"
+        placeholder="Nombre, tutor o teléfono"
+        autocomplete="off"
+      >
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Estado</span>
+      <select class="filter-bar__select" name="estado">
+        <option value="activo" {% if estado == 'activo' %}selected{% endif %}>Activos</option>
+        <option value="baja" {% if estado == 'baja' %}selected{% endif %}>Dados de baja</option>
+        <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+      </select>
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Grupo</span>
+      <select class="filter-bar__select" name="grupo_id">
+        <option value="">Todos los grupos</option>
+        {% for grupo in grupos %}
+          <option value="{{ grupo.id }}" {% if grupo.id == grupo_id %}selected{% endif %}>
+            {{ grupo.sucursal }} · {{ grupo.nombre }}{{ ' (inactivo)' if not grupo.activo else '' }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="button button--ghost" type="submit">Filtrar</button>
+    <a class="button button--ghost" href="/alumnos">Limpiar</a>
+  </form>
+</section>
+
+<section class="panel" aria-labelledby="alumnos-title">
+  <div class="section-head">
+    <h2 id="alumnos-title">Listado de alumnos</h2>
+    <span class="section-head__hint">La baja conserva pagos, asistencias e historial</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Alumno</th>
+          <th scope="col">Tutor</th>
+          <th scope="col">Grupos</th>
+          <th scope="col">Estado</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alumno in alumnos %}
+          <tr>
+            <td>
+              <div class="person-cell">
+                <span class="person-avatar person-avatar--sm" aria-hidden="true">
+                  {% if alumno.foto_ruta %}
+                    <img src="/alumnos/{{ alumno.id }}/foto" alt="">
+                  {% else %}
+                    {{ alumno.nombre[:1] }}
+                  {% endif %}
+                </span>
+                <div>
+                  <strong>{{ alumno.nombre }}</strong>
+                  <small class="data-table__meta">Ficha {{ alumno.id }}</small>
+                </div>
+              </div>
+            </td>
+            <td>
+              {% if alumno.tutor %}
+                {{ alumno.tutor }}
+                {% if alumno.telefono_tutor %}
+                  <small class="data-table__meta">{{ alumno.telefono_tutor }}</small>
+                {% endif %}
+              {% else %}
+                <span class="data-table__meta">Sin tutor registrado</span>
+              {% endif %}
+            </td>
+            <td class="tabular">{{ alumno.grupos_activos }}</td>
+            <td>
+              {% if alumno.estado == 'activo' %}
+                <span class="badge badge--ok">Activo</span>
+              {% else %}
+                <span class="badge badge--muted">Baja</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                <a class="button button--primary button--sm" href="/alumnos/{{ alumno.id }}">
+                  Ficha
+                </a>
+                <a class="button button--ghost button--sm" href="/alumnos/{{ alumno.id }}/editar">
+                  Editar
+                </a>
+                <form
+                  method="post"
+                  action="/alumnos/{{ alumno.id }}/estado"
+                  onsubmit="return confirm('¿Cambiar el estado del alumno?')"
+                >
+                  <input
+                    type="hidden"
+                    name="estado"
+                    value="{{ 'baja' if alumno.estado == 'activo' else 'activo' }}"
+                  >
+                  <button
+                    class="button button--sm {{ 'button--ghost' if alumno.estado == 'activo' else 'button--primary' }}"
+                    type="submit"
+                  >
+                    {{ 'Dar de baja' if alumno.estado == 'activo' else 'Reactivar' }}
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty-state">
+                No hay alumnos que coincidan con el filtro.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

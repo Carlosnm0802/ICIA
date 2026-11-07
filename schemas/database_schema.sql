@@ -105,7 +105,9 @@ CREATE TABLE sesion_maestros (
     maestro_id INTEGER NOT NULL REFERENCES maestros(id) ON UPDATE CASCADE ON DELETE RESTRICT,
     pagado INTEGER NOT NULL DEFAULT 0 CHECK (pagado IN (0, 1)),
     fecha_pago TEXT,
-    UNIQUE (sesion_id, maestro_id)
+    maestro_titular_id INTEGER REFERENCES maestros(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+    UNIQUE (sesion_id, maestro_id),
+    CHECK (maestro_titular_id IS NULL OR maestro_titular_id <> maestro_id)
 );
 
 CREATE TABLE folio_contadores (
@@ -163,6 +165,7 @@ CREATE UNIQUE INDEX ux_grupo_alumnos_activo ON grupo_alumnos(grupo_id, alumno_id
 CREATE INDEX idx_sesiones_grupo_fecha ON sesiones(grupo_id, fecha);
 CREATE INDEX idx_sesiones_fecha_estado ON sesiones(fecha, estado);
 CREATE INDEX idx_sesion_maestros_maestro ON sesion_maestros(maestro_id, pagado);
+CREATE INDEX idx_sesion_maestros_titular ON sesion_maestros(maestro_titular_id);
 CREATE INDEX idx_pagos_alumno_fecha ON pagos(alumno_id, fecha);
 CREATE INDEX idx_pagos_sucursal_fecha ON pagos(sucursal_id, fecha);
 CREATE INDEX idx_pagos_fecha_estado ON pagos(fecha, estado);

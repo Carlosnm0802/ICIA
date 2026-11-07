@@ -7,7 +7,18 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import APP_NAME
 from app.core.security import NoAutenticado, requiere_sesion
-from app.routers import auth, dashboard, debts, pos
+from app.routers import (
+    attendance,
+    auth,
+    dashboard,
+    debts,
+    groups,
+    payroll,
+    pos,
+    students,
+    system,
+    teachers,
+)
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
@@ -15,12 +26,22 @@ app = FastAPI(title=APP_NAME)
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 app.include_router(auth.router)
 app.include_router(dashboard.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(attendance.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(students.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(teachers.router, dependencies=[Depends(requiere_sesion)])
 app.include_router(debts.router, dependencies=[Depends(requiere_sesion)])
 app.include_router(
     debts.reposiciones_router,
     dependencies=[Depends(requiere_sesion)],
 )
+app.include_router(groups.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(
+    groups.sucursales_router,
+    dependencies=[Depends(requiere_sesion)],
+)
+app.include_router(payroll.router, dependencies=[Depends(requiere_sesion)])
 app.include_router(pos.router, dependencies=[Depends(requiere_sesion)])
+app.include_router(system.router, dependencies=[Depends(requiere_sesion)])
 
 
 @app.exception_handler(NoAutenticado)

@@ -2,7 +2,7 @@
 
 Este documento explica el proyecto **ICIA** como si estuvieras aprendiendo a programarlo desde cero. La idea es que puedas leerlo por fases, entender qué problema resolvimos, qué piezas construimos y qué conceptos conviene dominar antes de avanzar.
 
-> Estado actual: **Fase 1 y Fase 2 completadas**. La siguiente fase es la **Fase 3: dashboard, deudas y reposiciones**. La suite actual tiene **127 pruebas automatizadas**.
+> Estado actual: **Fases 1, 2, 3 y 4 completadas**. La **Fase 5** está en preparación local, pendiente de validación en la laptop Windows y la impresora térmica del dueño. La suite actual tiene **246 pruebas automatizadas**.
 
 ---
 
@@ -49,9 +49,9 @@ La aplicación es un **monolito local**:
 | --- | --- | --- |
 | Fase 1 | Base técnica, base de datos, datos semilla y respaldo USB | Completada |
 | Fase 2 | Cobro Express, tickets, deudas, anulación, login y descarga de tickets | Completada |
-| Fase 3 | Dashboard, deudas y reposiciones | Siguiente |
-| Fase 4 | Grupos, sesiones, maestros y pago a maestros | Planeada |
-| Fase 5 | Empaquetado, impresión real y puesta en marcha en Windows | Planeada |
+| Fase 3 | Dashboard, deudas y reposiciones | Completada |
+| Fase 4 | Grupos, sesiones, maestros, alumnos, pago a maestros y asistencia | Completada |
+| Fase 5 | Empaquetado, impresión real y puesta en marcha en Windows | En preparación |
 
 ---
 
@@ -275,33 +275,116 @@ ACEPTACIÓN FASE 2: OK
 
 ### 5.1 Problema
 
-Después de cobrar, el dueño necesita ver el panorama: cuánto se cobró hoy, cuánto en la semana, quién debe y qué alumnos están activos.
+En la Fase 2 logramos cobrar rápidamente, emitir tickets y registrar asistencias. Pero una escuela no se maneja a ciegas: el dueño necesita saber al instante cuánto dinero ingresó hoy, cuánto lleva en la semana, qué alumnos deben clases que ya tomaron y qué alumnos faltaron pero tienen derecho a reponer su clase.
 
-### 5.2 Qué se planea construir
+Además, cuando un alumno moroso paga, ese dinero debe reflejarse de inmediato en los ingresos sin descuadrar la caja; y cuando un alumno repone una clase, esa reposición **nunca debe generar un cobro nuevo** porque la clase ya fue pagada.
 
-| Tarea | Objetivo |
+### 5.2 Qué construimos
+
+Completamos las 5 tareas de la Fase 3:
+
+- **Tarea 3.1 — Dashboard con KPIs (`/dashboard`):** cuatro tarjetas principales con métricas clave:
+  1. **Cobrado hoy:** monto total en centavos formateado a MXN y cantidad de tickets emitidos hoy.
+  2. **Cobrado en la semana:** acumulado desde el lunes hasta hoy con su número de tickets.
+  3. **Deudas pendientes:** cantidad de asistencias sin pago y monto pendiente por cobrar.
+  4. **Alumnos activos:** total de alumnos inscritos en estado activo.
+- **Tarea 3.2 — Gráfica de recaudación por sucursal con Chart.js local:**
+  - Endpoint JSON `/dashboard/recaudacion` con el desglose semanal por sucursal (`TOT`, `OCO`, `PON`, `REF`).
+  - Librería `chart.umd.min.js` (Chart.js 4.6.1) guardada de forma 100% local en `app/static/vendor/chart.js/`, cumpliendo la regla inviolable de cero dependencias de internet en runtime.
+  - Script `dashboard.js` que consulta el endpoint local y dibuja una gráfica de barras responsiva.
+- **Tarea 3.3 — Módulo de cobranza de deudas (`/deudas`):**
+  - Listado de todos los alumnos que tienen asistencia registrada sin pago o con pago cancelado (vía la vista `v_deudas`).
+  - Botón de cobro rápido con selección de método (Efectivo o Transferencia).
+  - Al cobrar una deuda, se ejecuta una transacción atómica: asigna folio consecutivo atómico, crea el registro `Pago`, actualiza la `Asistencia`, actualiza de inmediato el dashboard e imprime el ticket térmico mediante un `iframe` silencioso.
+- **Tarea 3.4 — Módulo de reposiciones pendientes (`/reposiciones`) y "Marcar falta":**
+  - Botón **"Marcar falta"** en Cobro Express: permite registrar la inasistencia de un alumno que ya pagó, conservando intacto su pago y folio, y enviándolo automáticamente a la lista de reposiciones.
+  - Pantalla `/reposiciones`: lista las faltas con pago vigente y permite seleccionar una sesión programada de **otro grupo**.
+  - Al registrar la reposición, se crea una nueva `Asistencia` con `es_reposicion = 1`, `repone_a_id = falta.id` y reutiliza el mismo `pago_id`. **Cero cobros nuevos, cero folios nuevos y cero tickets.**
+- **Tarea 3.5 — Pruebas de consistencia y prueba integral de aceptación (`tests/test_aceptacion_fase3.py`):**
+  - Validaciones de borde: sesiones destino canceladas o de grupos inactivos quedan excluidas.
+  - Bloqueo estricto de anulación: una falta que ya fue repuesta no puede ser deshecha en la sesión origen.
+  - Escenario integral: 2 cobros + 1 falta + 1 deuda + reposición a otro grupo + cobro de deuda = totales matemáticamente exactos.
+
+### 5.3 Conceptos importantes explicados para un alumno
+
+#### A. Vistas de base de datos (SQL Views) como contratos
+En lugar de escribir consultas gigantescas con múltiples `JOIN` en cada parte del código, SQLite soporta **Vistas** (`CREATE VIEW`).
+- `v_deudas`: une `asistencias`, `alumnos`, `sesiones`, `grupos` y `sucursales` donde el estado es `asistio` y `pago_id IS NULL`. Para el código Python, consultar `v_deudas` es tan simple como hacer un `SELECT * FROM v_deudas`.
+- `v_reposiciones_pendientes`: busca asistencias con estado `falto`, con pago vigente, que aún no tengan otra asistencia que las reponga (`NOT EXISTS (SELECT 1 FROM asistencias r WHERE r.repone_a_id = a.id)`).
+
+#### B. La regla sagrada de la reposición: ¿por qué no hay un nuevo Pago?
+Si un alumno paga $140.00 por su clase del jueves pero no asiste por enfermedad, la escuela ya tiene su dinero. Cuando el alumno viene el sábado a reponer en otro grupo:
+1. Asistió al salón del sábado (se registra una fila en `asistencias`).
+2. Pero **no debe ingresar dinero a caja ni emitirse un nuevo folio**.
+3. Por eso, en la base de datos la nueva asistencia tiene:
+   - `es_reposicion = 1`
+   - `repone_a_id = id_de_la_falta`
+   - `pago_id = id_del_pago_original` (reutilizado)
+4. El total recaudado en el dashboard permanece exactamente igual antes y después de reponer.
+
+#### C. Librerías frontend sin CDN (Offline estricto)
+Muchos tutoriales web te enseñan a agregar Chart.js así:
+`<script src="https://cdn.jsdelivr.net/..."></script>`
+En este proyecto **eso está prohibido**. Si el dueño está en una sucursal sin señal o se cae el internet, la pantalla no cargaría o la gráfica se rompería.
+Descargamos el archivo JavaScript compilado (`chart.umd.min.js`), lo colocamos dentro de `app/static/vendor/chart.js/` y lo servimos como archivo estático local.
+
+#### D. Transacción atómica al cobrar deudas
+Cobrar una deuda no es simplemente "cambiar un texto en la pantalla". En `cashier.py`, la función `cobrar_deuda()` ejecuta dentro de `BEGIN IMMEDIATE`:
+1. Verifica que la deuda siga pendiente (evita cobros duplicados simultáneos).
+2. Genera el siguiente folio atómico de la sucursal (ej. `REF-0025`).
+3. Inserta el registro `Pago` con fecha y hora actual.
+4. Vincula `asistencia.pago_id = nuevo_pago.id`.
+5. Hace `commit()`.
+Si la luz se va o la base de datos se traba a la mitad, se hace `rollback()` y la base de datos queda limpia, sin pagos huérfanos.
+
+### 5.4 Archivos clave de la Fase 3
+
+| Archivo | Qué hace |
 | --- | --- |
-| 3.1 | Dashboard con KPI: cobrado hoy, cobrado en la semana, deudas y alumnos activos. |
-| 3.2 | Gráfica de recaudación por sucursal con Chart.js local. |
-| 3.3 | Listado de deudores con monto y cobro rápido. |
-| 3.4 | Reposiciones pendientes y registro de reposición sin cobro nuevo. |
-| 3.5 | Pruebas de dashboard, deuda y reposición. |
+| `app/routers/dashboard.py` | Ruta `/dashboard` con las tarjetas KPI y `/dashboard/recaudacion` para la gráfica. |
+| `app/routers/debts.py` | Rutas de `/deudas` (listado y cobro) y `/reposiciones` (listado y asignación a otro grupo). |
+| `app/services/reports.py` | Consultas analíticas: `resumen_dashboard()`, `recaudacion_por_sucursal()`, `listar_deudas()`, `listar_reposiciones_pendientes()`. |
+| `app/services/cashier.py` | Reglas transaccionales: `cobrar_deuda()`, `marcar_falta()`, `registrar_reposicion()` y protección en `deshacer_asistencia()`. |
+| `app/static/vendor/chart.js/` | Archivo vendorizado local de Chart.js (sin CDN). |
+| `app/static/js/dashboard.js` | Código del cliente que inicializa la gráfica con Chart.js local. |
+| `app/templates/dashboard.html` | Plantilla del dashboard con KPIs y contenedor de la gráfica. |
+| `app/templates/debts/index.html` | Plantilla de cobro rápido de deudas con ticket embebido. |
+| `app/templates/debts/repositions.html` | Plantilla para ver faltas y elegir el grupo/sesión destino para reponer. |
+| `tests/test_dashboard.py` | Pruebas de KPIs, fechas de corte semanal y gráfica local. |
+| `tests/test_debts.py` | Pruebas de cobro rápido de deudas y prevención de cobro duplicado. |
+| `tests/test_repositions.py` | Pruebas de faltas, rechazo de mismo grupo, rechazo de sesiones canceladas y bloqueo de anulación. |
+| `tests/test_aceptacion_fase3.py` | Escenario integral de aceptación de la Fase 3. |
 
-### 5.3 Conceptos que aparecerán
+### 5.5 Prueba de aceptación de Fase 3
 
-**KPI** significa indicador clave de desempeño. En este caso: dinero cobrado, deudas y alumnos activos.
+El criterio formal de aceptación del proyecto para esta fase fue:
+> *"Al cobrar una deuda, el dashboard actualiza automáticamente los totales recaudados; reponer una clase no genera cobro nuevo."*
 
-**Consulta agregada** es una consulta SQL que suma, cuenta o agrupa datos. Por ejemplo: sumar todos los pagos vigentes del día.
+Construimos `tests/test_aceptacion_fase3.py`, que simula un flujo real de la escuela:
+1. Se abre sesión en El Refugio y se cobra a 2 alumnos ($280.00 en total).
+2. Alumno 2 se marca como **Falta** (pago se conserva, clase queda pendiente de reposición).
+3. Alumno 3 ingresa como **Asistió sin pagar** (deuda de $140.00).
+4. **Verificación intermedia del Dashboard:** refleja $280.00 recaudados, 2 tickets vigentes, 1 deuda pendiente ($140.00).
+5. Se repone la falta del Alumno 2 asignándolo a la sesión de Robótica de Tototlán:
+   - Se valida que **no se generó ningún pago nuevo**.
+   - El dashboard y la recaudación se mantienen exactamente en $280.00.
+   - La lista de reposiciones pendientes baja a 0.
+6. Se cobra la deuda del Alumno 3 desde el módulo `/deudas`:
+   - Se genera el folio `REF-0003` y ticket térmico.
+   - La lista de deudas baja a 0.
+   - El dashboard y la recaudación saltan automáticamente a **$420.00** con **3 tickets vigentes** y **$0.00 en deudas**.
 
-**Chart.js local** significa que la librería debe estar en `app/static/vendor/`, nunca en un CDN.
+Resultado de la prueba: **PASÓ AL 100% en 1.14 segundos.**
 
-**Reposición** es una clase pagada que el alumno faltó y luego recupera en otro grupo. No genera un cobro nuevo.
+### 5.6 Preguntas de repaso
 
-### 5.4 Criterio de aceptación de Fase 3
-
-- Al cobrar una deuda, el dashboard actualiza los totales.
-- Reponer una clase no genera cobro nuevo.
-- Los totales del dashboard coinciden con los pagos vigentes.
+1. ¿Por qué el dinero recaudado en el dashboard no cambia cuando un alumno repone una clase?
+2. ¿Cómo sabe SQLite si una falta ya fue repuesta o sigue pendiente en `v_reposiciones_pendientes`?
+3. ¿Por qué guardamos Chart.js en `app/static/vendor/` en lugar de cargarlo con un script de internet?
+4. Si un alumno tiene una falta ya repuesta en otro grupo, ¿por qué el sistema le prohíbe hacer clic en "Deshacer asistencia" en la sesión original?
+5. ¿Qué tablas se modifican cuando se hace clic en "Cobrar deuda"?
+6. Si una sucursal no ha tenido ningún cobro en la semana, ¿debe aparecer en la gráfica de recaudación o debe ocultarse? (Pista: debe aparecer con $0.00).
+7. ¿Cómo se evita que dos personas cobren la misma deuda al mismo tiempo generando dos cobros por error?
 
 ---
 

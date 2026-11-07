@@ -27,6 +27,14 @@
           <span>Dashboard</span>
         </a>
         <a
+          class="rail__link{% if request.url.path.startswith('/alumnos') %} rail__link--active{% endif %}"
+          href="/alumnos"
+          {% if request.url.path.startswith('/alumnos') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">◎</span>
+          <span>Alumnos</span>
+        </a>
+        <a
           class="rail__link{% if request.url.path.startswith('/pos') %} rail__link--active{% endif %}"
           href="/pos"
           {% if request.url.path.startswith('/pos') %}aria-current="page"{% endif %}
@@ -49,6 +57,54 @@
         >
           <span class="rail__icon" aria-hidden="true">↺</span>
           <span>Reposiciones</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/asistencias') %} rail__link--active{% endif %}"
+          href="/asistencias"
+          {% if request.url.path.startswith('/asistencias') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▤</span>
+          <span>Asistencias</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/grupos') %} rail__link--active{% endif %}"
+          href="/grupos"
+          {% if request.url.path.startswith('/grupos') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▦</span>
+          <span>Grupos</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/maestros') %} rail__link--active{% endif %}"
+          href="/maestros"
+          {% if request.url.path.startswith('/maestros') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">◫</span>
+          <span>Maestros</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/pagos-maestros') %} rail__link--active{% endif %}"
+          href="/pagos-maestros"
+          {% if request.url.path.startswith('/pagos-maestros') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">▩</span>
+          <span>Pago a maestros</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/sucursales') %} rail__link--active{% endif %}"
+          href="/sucursales"
+          {% if request.url.path.startswith('/sucursales') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">⌂</span>
+          <span>Sucursales</span>
+        </a>
+        <a
+          class="rail__link{% if request.url.path.startswith('/configuracion') %} rail__link--active{% endif %}"
+          href="/configuracion"
+          {% if request.url.path.startswith('/configuracion') %}aria-current="page"{% endif %}
+        >
+          <span class="rail__icon" aria-hidden="true">⚙</span>
+          <span>Configuración</span>
         </a>
       </nav>
       <form class="rail__logout-form" method="post" action="/logout">

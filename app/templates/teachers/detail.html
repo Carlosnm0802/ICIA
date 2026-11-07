@@ -1,0 +1,225 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ ficha.maestro.nombre }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="person-hero">
+  <div class="person-hero__photo">
+    {% if ficha.maestro.foto_ruta %}
+      <img src="/maestros/{{ ficha.maestro.id }}/foto" alt="Foto de {{ ficha.maestro.nombre }}">
+    {% else %}
+      <span aria-hidden="true">{{ ficha.maestro.nombre[:1] }}</span>
+    {% endif %}
+  </div>
+  <div class="person-hero__body">
+    <p class="eyebrow">Ficha del maestro</p>
+    <h1>{{ ficha.maestro.nombre }}</h1>
+    <p class="page-head__meta">
+      {{ 'Activo' if ficha.maestro.activo else 'Inactivo' }}
+      {% if ficha.maestro.especialidad %} · {{ ficha.maestro.especialidad }}{% endif %}
+      · {{ ficha.total_pagadas }} marcas pagadas
+      · {{ ficha.total_pendientes }} pendientes
+    </p>
+    <div class="person-hero__badges">
+      {% if ficha.maestro.activo %}
+        <span class="badge badge--ok">Activo</span>
+      {% else %}
+        <span class="badge badge--muted">Inactivo</span>
+      {% endif %}
+      <span class="badge">{{ ficha.grupos|length }} grupos asignados</span>
+    </div>
+  </div>
+  <div class="person-hero__actions">
+    <a class="button button--primary" href="/maestros/{{ ficha.maestro.id }}/editar">Editar</a>
+    <a class="button button--ghost" href="/maestros">Volver a maestros</a>
+    <form
+      method="post"
+      action="/maestros/{{ ficha.maestro.id }}/estado"
+      onsubmit="return confirm('¿Cambiar el estado del maestro?')"
+    >
+      <input
+        type="hidden"
+        name="activo"
+        value="{{ '0' if ficha.maestro.activo else '1' }}"
+      >
+      <button
+        class="button {{ 'button--ghost' if ficha.maestro.activo else 'button--primary' }}"
+        type="submit"
+      >
+        {{ 'Dar de baja' if ficha.maestro.activo else 'Reactivar' }}
+      </button>
+    </form>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if creado %}
+  <div class="notice notice--success" role="status">Maestro creado correctamente.</div>
+{% elif actualizado %}
+  <div class="notice notice--success" role="status">Ficha actualizada.</div>
+{% endif %}
+
+<div class="person-layout">
+  <section class="panel" aria-labelledby="datos-maestro-title">
+    <div class="section-head">
+      <h2 id="datos-maestro-title">Datos personales</h2>
+      <span class="section-head__hint">Ficha {{ ficha.maestro.id }}</span>
+    </div>
+    <dl class="detail-list">
+      <div>
+        <dt>Fecha de nacimiento</dt>
+        <dd>{{ ficha.maestro.fecha_nacimiento|fecha if ficha.maestro.fecha_nacimiento else '—' }}</dd>
+      </div>
+      <div>
+        <dt>Teléfono</dt>
+        <dd>{{ ficha.maestro.telefono or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Correo</dt>
+        <dd>{{ ficha.maestro.correo or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Dirección</dt>
+        <dd>{{ ficha.maestro.direccion or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Especialidad</dt>
+        <dd>{{ ficha.maestro.especialidad or '—' }}</dd>
+      </div>
+      <div>
+        <dt>Fecha de ingreso</dt>
+        <dd>{{ ficha.maestro.fecha_ingreso|fecha if ficha.maestro.fecha_ingreso else '—' }}</dd>
+      </div>
+      <div>
+        <dt>Contacto de emergencia</dt>
+        <dd>{{ ficha.maestro.contacto_emergencia or '—' }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="panel" aria-labelledby="grupos-maestro-title">
+    <div class="section-head">
+      <h2 id="grupos-maestro-title">Grupos asignados</h2>
+      <span class="section-head__hint">La asignación se edita desde Grupos</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Grupo</th>
+            <th scope="col">Horario</th>
+            <th scope="col">Bloques</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for grupo in ficha.grupos %}
+            <tr>
+              <td>
+                <strong>{{ grupo.nombre }}</strong>
+                <small class="data-table__meta">{{ grupo.sucursal_nombre }}</small>
+              </td>
+              <td>
+                {{ grupo.dias_semana|replace(',', ' · ') }}
+                <small class="data-table__meta">{{ grupo.hora_inicio }}–{{ grupo.hora_fin }}</small>
+              </td>
+              <td>
+                {% for bloque in grupo.bloques %}
+                  <span class="badge">{{ bloque }}</span>
+                {% endfor %}
+              </td>
+              <td>
+                {% if grupo.activo %}
+                  <span class="badge badge--ok">Activo</span>
+                {% else %}
+                  <span class="badge badge--muted">Inactivo</span>
+                {% endif %}
+              </td>
+              <td>
+                <a class="button button--ghost button--sm" href="/grupos/{{ grupo.grupo_id }}/editar">
+                  Editar grupo
+                </a>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  Sin grupos asignados. Asigna bloques desde la edición de un grupo.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="sesiones-maestro-title">
+    <div class="section-head">
+      <h2 id="sesiones-maestro-title">Marcas de pago por sesión</h2>
+      <span class="section-head__hint">Últimas 50 marcas · sin cálculo de sueldos</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Grupo</th>
+            <th scope="col">Marca</th>
+            <th scope="col">Sesión</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sesion in ficha.sesiones %}
+            <tr>
+              <td>
+                <strong>{{ sesion.fecha|fecha }}</strong>
+                <small class="data-table__meta">{{ sesion.fecha|fecha_larga }}</small>
+              </td>
+              <td>
+                {{ sesion.grupo_nombre }}
+                <small class="data-table__meta">{{ sesion.sucursal_nombre }}</small>
+              </td>
+              <td>
+                {% if sesion.pagado %}
+                  <span class="badge badge--ok">Pagado</span>
+                  {% if sesion.fecha_pago %}
+                    <small class="data-table__meta">{{ sesion.fecha_pago|fecha_hora }}</small>
+                  {% endif %}
+                {% else %}
+                  <span class="badge">Pendiente</span>
+                {% endif %}
+                {% if sesion.es_suplencia %}
+                  <span class="badge badge--muted">Suplencia</span>
+                  {% if sesion.titular_nombre %}
+                    <small class="data-table__meta">Titular: {{ sesion.titular_nombre }}</small>
+                  {% endif %}
+                {% endif %}
+              </td>
+              <td>
+                {% if sesion.estado_sesion == 'cancelada' %}
+                  <span class="badge badge--muted">Cancelada</span>
+                {% elif sesion.estado_sesion == 'impartida' %}
+                  <span class="badge badge--ok">Impartida</span>
+                {% else %}
+                  <span class="badge">Programada</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="4">
+                <div class="empty-state">Sin marcas de pago registradas.</div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

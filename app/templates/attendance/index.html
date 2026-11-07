@@ -1,0 +1,188 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Asistencias · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico · Asistencias</p>
+    <h1>Consulta de asistencia</h1>
+    <p class="page-head__meta">
+      Historial por grupo y fechas, con deudas y reposiciones
+    </p>
+  </div>
+  {% if resumen %}
+    <div class="page-head__actions">
+      <a
+        class="button button--primary"
+        href="/asistencias/exportar?grupo_id={{ resumen.grupo_id }}&desde={{ desde }}&hasta={{ hasta }}"
+      >
+        Exportar CSV
+      </a>
+    </div>
+  {% endif %}
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+<section class="panel" aria-labelledby="filtro-asistencia-title">
+  <div class="section-head">
+    <h2 id="filtro-asistencia-title">Filtros</h2>
+    <span class="section-head__hint">Selecciona un grupo y un rango de fechas</span>
+  </div>
+  <form class="filter-form" method="get" action="/asistencias">
+    <label class="form-field">
+      <span class="form-field__label">Grupo</span>
+      <select class="form-field__input" name="grupo_id" required>
+        <option value="" disabled {% if not grupo_id %}selected{% endif %}>
+          Selecciona un grupo…
+        </option>
+        {% for grupo in grupos %}
+          <option value="{{ grupo.id }}" {% if grupo.id == grupo_id %}selected{% endif %}>
+            {{ grupo.sucursal }} · {{ grupo.nombre }} · {{ grupo.hora_inicio }}–{{ grupo.hora_fin }}
+            {% if not grupo.activo %} (inactivo){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="form-field">
+      <span class="form-field__label">Desde</span>
+      <input class="form-field__input" type="date" name="desde" value="{{ desde }}">
+    </label>
+    <label class="form-field">
+      <span class="form-field__label">Hasta</span>
+      <input class="form-field__input" type="date" name="hasta" value="{{ hasta }}">
+    </label>
+    <button class="button button--primary" type="submit">Consultar</button>
+  </form>
+</section>
+
+{% if resumen %}
+  <section class="session-summary" aria-label="Resumen de asistencia">
+    <div>
+      <span class="label">Sesiones</span>
+      <strong class="tabular">{{ resumen.total_sesiones }}</strong>
+    </div>
+    <div>
+      <span class="label">Asistencias</span>
+      <strong class="tabular">{{ resumen.total_asistio }}</strong>
+    </div>
+    <div>
+      <span class="label">Faltas</span>
+      <strong class="tabular">{{ resumen.total_falto }}</strong>
+    </div>
+    <div>
+      <span class="label">Deudas</span>
+      <strong class="tabular">{{ resumen.total_deuda }}</strong>
+    </div>
+    <div>
+      <span class="label">Reposiciones</span>
+      <strong class="tabular">{{ resumen.total_reposicion }}</strong>
+    </div>
+    <div>
+      <span class="label">Asistencia</span>
+      <strong class="tabular">{{ resumen.porcentaje_asistencia }}%</strong>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="matriz-asistencia-title">
+    <div class="section-head">
+      <h2 id="matriz-asistencia-title">{{ resumen.grupo }}</h2>
+      <span class="section-head__hint">
+        {{ resumen.sucursal }} · {{ resumen.desde.isoformat()|fecha }} al {{ resumen.hasta.isoformat()|fecha }}
+      </span>
+    </div>
+
+    <div class="attendance-legend" aria-label="Leyenda de estados">
+      <span class="attendance-cell attendance-cell--asistio">Asistió</span>
+      <span class="attendance-cell attendance-cell--deuda">Deuda</span>
+      <span class="attendance-cell attendance-cell--falta_reponer">Faltó · Reponer</span>
+      <span class="attendance-cell attendance-cell--falta_repuesta">Faltó · Repuesta</span>
+      <span class="attendance-cell attendance-cell--reposicion">Reposición</span>
+      <span class="attendance-cell attendance-cell--cancelada">Cancelada</span>
+      <span class="attendance-cell attendance-cell--vacio">Sin registro</span>
+    </div>
+
+    <div class="table-wrap attendance-wrap">
+      <table class="data-table attendance-table">
+        <caption class="sr-only">
+          Asistencia de {{ resumen.grupo }} del {{ resumen.desde.isoformat() }} al {{ resumen.hasta.isoformat() }}
+        </caption>
+        <thead>
+          <tr>
+            <th class="attendance-table__student" scope="col">Alumno</th>
+            {% for sesion in resumen.sesiones %}
+              <th scope="col">
+                <strong>{{ sesion.fecha|fecha }}</strong>
+                <small class="data-table__meta">
+                  {{ sesion.estado|capitalize }}{% if sesion.es_extra %} · Extra{% endif %}
+                </small>
+              </th>
+            {% endfor %}
+            <th scope="col">Asistió</th>
+            <th scope="col">Faltas</th>
+            <th scope="col">Deudas</th>
+            <th scope="col">Repos.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in resumen.filas %}
+            <tr>
+              <th class="attendance-table__student" scope="row">
+                <strong>{{ fila.alumno }}</strong>
+                <small class="data-table__meta">{{ fila.tutor or 'Sin tutor' }}</small>
+                {% if fila.estado_alumno == 'baja' %}
+                  <span class="badge badge--muted">Baja</span>
+                {% endif %}
+              </th>
+              {% for sesion in resumen.sesiones %}
+                <td>
+                  {% if sesion.estado == 'cancelada' %}
+                    <span class="attendance-cell attendance-cell--cancelada">Cancelada</span>
+                  {% else %}
+                    {% set celda = fila.celdas.get(sesion.id) %}
+                    {% if celda %}
+                      <span
+                        class="attendance-cell attendance-cell--{{ celda.tipo }}"
+                        {% if celda.folio %}title="Folio {{ celda.folio }}"{% endif %}
+                      >
+                        {{ celda.etiqueta }}
+                        {% if celda.folio %}<small>{{ celda.folio }}</small>{% endif %}
+                        {% if celda.origen %}<small>{{ celda.origen }}</small>{% endif %}
+                      </span>
+                    {% else %}
+                      <span class="attendance-cell attendance-cell--vacio">—</span>
+                    {% endif %}
+                  {% endif %}
+                </td>
+              {% endfor %}
+              <td class="tabular">{{ fila.total_asistio }}</td>
+              <td class="tabular">{{ fila.total_falto }}</td>
+              <td class="tabular">{{ fila.total_deuda }}</td>
+              <td class="tabular">{{ fila.total_reposicion }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="{{ resumen.sesiones|length + 5 }}">
+                <div class="empty-state">
+                  No hay alumnos inscritos en el rango seleccionado.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% else %}
+  <section class="panel">
+    <div class="empty-panel">
+      <span class="empty-panel__icon" aria-hidden="true">▦</span>
+      <h2>Selecciona un grupo</h2>
+      <p>Elige un grupo y un rango de fechas para consultar su asistencia.</p>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

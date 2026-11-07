@@ -1,0 +1,235 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Pago a maestros · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico · Honorarios</p>
+    <h1>Pago a maestros</h1>
+    <p class="page-head__meta">
+      Del {{ resumen.desde|fecha }} al {{ resumen.hasta|fecha }}
+      · {{ resumen.total }} marcas en {{ resumen.total_sesiones }} sesiones
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/grupos">Ver grupos</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if actualizados is not none %}
+  <div class="notice notice--success" role="status">
+    {% if actualizados == 0 %}
+      Las marcas seleccionadas ya tenían ese estado.
+    {% elif actualizados == 1 %}
+      Se actualizó 1 marca de pago.
+    {% else %}
+      Se actualizaron {{ actualizados }} marcas de pago.
+    {% endif %}
+  </div>
+{% endif %}
+
+<section class="panel panel--tight" aria-label="Filtros del corte de honorarios">
+  <form class="filter-bar" method="get" action="/pagos-maestros">
+    <label class="filter-bar__field">
+      <span class="label">Desde</span>
+      <input
+        class="filter-bar__select"
+        type="date"
+        name="desde"
+        value="{{ resumen.desde }}"
+        max="{{ hoy }}"
+      >
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Hasta</span>
+      <input
+        class="filter-bar__select"
+        type="date"
+        name="hasta"
+        value="{{ resumen.hasta }}"
+        max="{{ hoy }}"
+      >
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Sucursal</span>
+      <select class="filter-bar__select" name="sucursal_id">
+        <option value="">Todas</option>
+        {% for sucursal in sucursales %}
+          <option value="{{ sucursal.id }}" {% if sucursal.id == sucursal_id %}selected{% endif %}>
+            {{ sucursal.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Maestro</span>
+      <select class="filter-bar__select" name="maestro_id">
+        <option value="">Todos</option>
+        {% for maestro in maestros %}
+          <option value="{{ maestro.id }}" {% if maestro.id == maestro_id %}selected{% endif %}>
+            {{ maestro.nombre }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="filter-bar__field">
+      <span class="label">Pago</span>
+      <select class="filter-bar__select" name="estado">
+        <option value="todos" {% if estado == 'todos' %}selected{% endif %}>Todos</option>
+        <option value="pendiente" {% if estado == 'pendiente' %}selected{% endif %}>Pendientes</option>
+        <option value="pagado" {% if estado == 'pagado' %}selected{% endif %}>Pagados</option>
+      </select>
+    </label>
+    <button class="button button--ghost" type="submit">Filtrar</button>
+    <a class="button button--ghost" href="/pagos-maestros">Limpiar</a>
+  </form>
+</section>
+
+<section class="session-summary" aria-label="Resumen del corte de honorarios">
+  <div>
+    <span class="label">Marcas en el corte</span>
+    <strong class="tabular">{{ resumen.total }}</strong>
+  </div>
+  <div>
+    <span class="label">Pagadas</span>
+    <strong class="tabular">{{ resumen.pagadas }}</strong>
+  </div>
+  <div>
+    <span class="label">Pendientes</span>
+    <strong class="tabular">{{ resumen.pendientes }}</strong>
+  </div>
+  <div>
+    <span class="label">Sesiones</span>
+    <strong class="tabular">{{ resumen.total_sesiones }}</strong>
+  </div>
+</section>
+
+<form id="honorarios-form" method="post" action="/pagos-maestros/marcar">
+  <input type="hidden" name="desde" value="{{ resumen.desde }}">
+  <input type="hidden" name="hasta" value="{{ resumen.hasta }}">
+  <input type="hidden" name="estado" value="{{ estado }}">
+  {% if sucursal_id %}
+    <input type="hidden" name="sucursal_id" value="{{ sucursal_id }}">
+  {% endif %}
+  {% if maestro_id %}
+    <input type="hidden" name="maestro_id" value="{{ maestro_id }}">
+  {% endif %}
+
+  <section class="panel" aria-labelledby="honorarios-title">
+    <div class="section-head">
+      <h2 id="honorarios-title">Marcas de pago por sesión</h2>
+      <span class="section-head__hint">
+        Cada docente tiene su propia marca; el sistema no calcula montos ni sueldos
+      </span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">
+              <input
+                id="seleccionar-todos"
+                type="checkbox"
+                data-seleccionar-todos
+                aria-label="Seleccionar todas las marcas"
+              >
+            </th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Sesión</th>
+            <th scope="col">Docente</th>
+            <th scope="col">Pago</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in resumen.items %}
+            <tr>
+              <td>
+                <input
+                  type="checkbox"
+                  name="marca_ids"
+                  value="{{ item.marca_id }}"
+                  data-marca-checkbox
+                  aria-label="Seleccionar a {{ item.maestro_nombre }} del {{ item.fecha|fecha }}"
+                >
+              </td>
+              <td>
+                <strong>{{ item.fecha|fecha }}</strong>
+                <small class="data-table__meta">{{ item.fecha|fecha_larga }}</small>
+              </td>
+              <td>
+                <strong>{{ item.grupo_nombre }}</strong>
+                <small class="data-table__meta">
+                  {{ item.sucursal_nombre }}{% if item.es_extra %} · Extra{% endif %}
+                </small>
+              </td>
+              <td>
+                <strong>{{ item.maestro_nombre }}</strong>
+                {% if item.titular_nombre %}
+                  <span class="badge badge--muted">Suplente</span>
+                  <small class="data-table__meta">
+                    Titular: {{ item.titular_nombre }}
+                  </small>
+                {% endif %}
+              </td>
+              <td>
+                {% if item.pagado %}
+                  <span class="badge badge--ok">Pagado</span>
+                  {% if item.fecha_pago %}
+                    <small class="data-table__meta">
+                      {{ item.fecha_pago|fecha_hora }}
+                    </small>
+                  {% endif %}
+                {% else %}
+                  <span class="badge">Pendiente</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="5">
+                <div class="empty-state">
+                  No hay marcas de pago en este periodo.
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="row-actions" style="margin-top: var(--space-md);">
+      <button
+        class="button button--primary"
+        type="submit"
+        name="pagado"
+        value="1"
+        {% if not resumen.items %}disabled{% endif %}
+      >
+        Marcar seleccionados pagados
+      </button>
+      <button
+        class="button button--ghost"
+        type="submit"
+        name="pagado"
+        value="0"
+        {% if not resumen.items %}disabled{% endif %}
+      >
+        Marcar seleccionados pendientes
+      </button>
+      <span class="data-table__meta">
+        Al marcar pendiente se borra la fecha de pago.
+      </span>
+    </div>
+  </section>
+</form>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/payroll.js') }}" defer></script>
+{% endblock %}

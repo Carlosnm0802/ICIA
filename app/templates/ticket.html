@@ -96,11 +96,17 @@
   </main>
 
   {% if not descargar %}
-    <div class="ticket-actions">
-      <button type="button" id="ticket-print">Imprimir</button>
-      <a href="/pos/tickets/{{ ticket.pago_id }}?descargar=1" download>Descargar</a>
-      <a href="/pos">Volver al cobro</a>
-    </div>
+    {% if prueba %}
+      <div class="ticket-actions">
+        <button type="button" onclick="window.close()">Cerrar</button>
+      </div>
+    {% else %}
+      <div class="ticket-actions">
+        <button type="button" id="ticket-print">Imprimir</button>
+        <a href="/pos/tickets/{{ ticket.pago_id }}?descargar=1" download>Descargar</a>
+        <a href="/pos">Volver al cobro</a>
+      </div>
+    {% endif %}
 
     <script>
       document.getElementById("ticket-print")?.addEventListener("click", () => window.print());

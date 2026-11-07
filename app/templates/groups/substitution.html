@@ -1,0 +1,152 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Suplencia · {{ detalle.grupo_nombre }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico · Suplencia</p>
+    <h1>Sustituir docente</h1>
+    <p class="page-head__meta">
+      {{ detalle.grupo_nombre }} · {{ detalle.sucursal_nombre }}
+      · {{ detalle.fecha|fecha_larga }} · {{ detalle.estado|capitalize }}
+      {{ ' · Extra' if detalle.es_extra else '' }}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/grupos/{{ detalle.grupo_id }}/sesiones">
+      Volver a sesiones
+    </a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if sustituida %}
+  <div class="notice notice--success" role="status">
+    Sustitución registrada. El suplente recibirá la marca de pago de esta sesión.
+  </div>
+{% elif restaurada %}
+  <div class="notice notice--success" role="status">
+    Titular restaurado correctamente.
+  </div>
+{% endif %}
+
+{% if detalle.estado == 'cancelada' %}
+  <div class="notice notice--danger" role="status">
+    Sesión cancelada: no se pueden registrar suplencias.
+  </div>
+{% elif not suplentes %}
+  <div class="notice notice--danger" role="status">
+    No hay otros maestros activos disponibles para cubrir una suplencia.
+  </div>
+{% endif %}
+
+<section class="panel" aria-labelledby="docentes-title">
+  <div class="section-head">
+    <h2 id="docentes-title">Docentes de la sesión</h2>
+    <span class="section-head__hint">
+      La marca de pago pertenece a quien realmente impartió; el titular original se conserva como referencia
+    </span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Docente actual</th>
+          <th scope="col">Pago</th>
+          <th scope="col">Titular original</th>
+          <th scope="col">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for docente in detalle.docentes %}
+          <tr>
+            <td>
+              <strong>{{ docente.nombre }}</strong>
+              {% if docente.titular_id %}
+                <span class="badge badge--muted">Suplente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if docente.pagado %}
+                <span class="badge badge--ok">Pagado</span>
+              {% else %}
+                <span class="badge">Pendiente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if docente.titular_nombre %}
+                {{ docente.titular_nombre }}
+              {% else %}
+                <span class="data-table__meta">Titular actual</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="row-actions">
+                {% if docente.puede_sustituir and suplentes %}
+                  <form
+                    method="post"
+                    action="/grupos/{{ detalle.grupo_id }}/sesiones/{{ detalle.sesion_id }}/suplencia"
+                  >
+                    <input type="hidden" name="marca_id" value="{{ docente.marca_id }}">
+                    <select
+                      class="form-field__input"
+                      style="min-height: 38px; width: auto; padding: 0 0.5rem;"
+                      name="suplente_id"
+                      aria-label="Maestro suplente"
+                      required
+                    >
+                      <option value="" disabled selected>Selecciona suplente…</option>
+                      {% for maestro in suplentes %}
+                        <option value="{{ maestro.id }}">
+                          {{ maestro.nombre }}{% if maestro.especialidad %} · {{ maestro.especialidad }}{% endif %}
+                        </option>
+                      {% endfor %}
+                    </select>
+                    <button class="button button--primary button--sm" type="submit">
+                      {{ 'Cambiar suplente' if docente.titular_id else 'Sustituir' }}
+                    </button>
+                  </form>
+                {% endif %}
+                {% if docente.puede_restaurar %}
+                  <form
+                    method="post"
+                    action="/grupos/{{ detalle.grupo_id }}/sesiones/{{ detalle.sesion_id }}/suplencia/restaurar"
+                    data-confirmar="¿Restaurar al titular original en esta sesión?"
+                  >
+                    <input type="hidden" name="marca_id" value="{{ docente.marca_id }}">
+                    <button class="button button--ghost button--sm" type="submit">
+                      Restaurar titular
+                    </button>
+                  </form>
+                {% endif %}
+                {% if docente.pagado %}
+                  <span class="data-table__meta">Ya pagado</span>
+                {% elif not docente.puede_sustituir %}
+                  <span class="data-table__meta">No editable</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                Esta sesión no tiene docentes asignados.
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/sessions.js') }}" defer></script>
+{% endblock %}

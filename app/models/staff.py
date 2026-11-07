@@ -63,6 +63,7 @@ class Maestro(Base):
     sesiones: Mapped[list[SesionMaestro]] = relationship(
         "SesionMaestro",
         back_populates="maestro",
+        foreign_keys="SesionMaestro.maestro_id",
     )
 
 
@@ -75,7 +76,12 @@ class SesionMaestro(Base):
             name="uq_sesion_maestros_sesion_maestro",
         ),
         CheckConstraint("pagado IN (0, 1)", name="ck_sesion_maestros_pagado"),
+        CheckConstraint(
+            "maestro_titular_id IS NULL OR maestro_titular_id <> maestro_id",
+            name="ck_sesion_maestros_suplencia",
+        ),
         Index("idx_sesion_maestros_maestro", "maestro_id", "pagado"),
+        Index("idx_sesion_maestros_titular", "maestro_titular_id"),
         {"sqlite_autoincrement": True},
     )
 
@@ -96,6 +102,13 @@ class SesionMaestro(Base):
         ),
         nullable=False,
     )
+    maestro_titular_id: Mapped[int | None] = mapped_column(
+        ForeignKey(
+            "maestros.id",
+            onupdate="CASCADE",
+            ondelete="RESTRICT",
+        ),
+    )
     pagado: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
@@ -104,4 +117,8 @@ class SesionMaestro(Base):
     fecha_pago: Mapped[str | None] = mapped_column(Text)
 
     sesion: Mapped[Sesion] = relationship("Sesion", back_populates="maestros")
-    maestro: Mapped[Maestro] = relationship("Maestro", back_populates="sesiones")
+    maestro: Mapped[Maestro] = relationship(
+        "Maestro",
+        back_populates="sesiones",
+        foreign_keys=[maestro_id],
+    )

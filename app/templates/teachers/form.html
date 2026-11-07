@@ -1,0 +1,179 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar' if maestro else 'Nuevo' }} maestro · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Personas</p>
+    <h1>{{ 'Editar maestro' if maestro else 'Nuevo maestro' }}</h1>
+    <p class="page-head__meta">
+      {% if maestro %}
+        {{ maestro.nombre }} · Ficha {{ maestro.id }}
+      {% else %}
+        Captura los datos personales, laborales y la fotografía
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="{{ '/maestros/' ~ maestro.id if maestro else '/maestros' }}">
+      {{ 'Volver a la ficha' if maestro else 'Volver a maestros' }}
+    </a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+<section class="panel form-panel" aria-labelledby="maestro-form-title">
+  <div class="section-head">
+    <h2 id="maestro-form-title">Datos del maestro</h2>
+    <span class="section-head__hint">Los campos con * son obligatorios</span>
+  </div>
+
+  <form
+    class="form-grid"
+    method="post"
+    action="{{ '/maestros/' ~ maestro.id if maestro else '/maestros' }}"
+    enctype="multipart/form-data"
+  >
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Nombre *</span>
+        <input
+          class="form-field__input"
+          name="nombre"
+          type="text"
+          maxlength="120"
+          value="{{ maestro.nombre if maestro else '' }}"
+          autocomplete="off"
+          required
+        >
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Fecha de nacimiento</span>
+        <input
+          class="form-field__input"
+          name="fecha_nacimiento"
+          type="date"
+          value="{{ maestro.fecha_nacimiento or '' if maestro else '' }}"
+        >
+      </label>
+    </div>
+
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Teléfono</span>
+        <input
+          class="form-field__input"
+          name="telefono"
+          type="tel"
+          maxlength="40"
+          value="{{ maestro.telefono or '' if maestro else '' }}"
+          autocomplete="off"
+        >
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Correo</span>
+        <input
+          class="form-field__input"
+          name="correo"
+          type="email"
+          maxlength="160"
+          value="{{ maestro.correo or '' if maestro else '' }}"
+          autocomplete="off"
+        >
+      </label>
+    </div>
+
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Especialidad</span>
+        <input
+          class="form-field__input"
+          name="especialidad"
+          type="text"
+          maxlength="120"
+          value="{{ maestro.especialidad or '' if maestro else '' }}"
+          placeholder="Inglés, Robótica…"
+          autocomplete="off"
+        >
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Fecha de ingreso</span>
+        <input
+          class="form-field__input"
+          name="fecha_ingreso"
+          type="date"
+          value="{{ maestro.fecha_ingreso or '' if maestro else '' }}"
+        >
+      </label>
+    </div>
+
+    <label class="form-field">
+      <span class="form-field__label">Dirección</span>
+      <textarea
+        class="form-field__input form-field__input--area"
+        name="direccion"
+        rows="3"
+        maxlength="240"
+      >{{ maestro.direccion or '' if maestro else '' }}</textarea>
+    </label>
+
+    <label class="form-field">
+      <span class="form-field__label">Contacto de emergencia</span>
+      <input
+        class="form-field__input"
+        name="contacto_emergencia"
+        type="text"
+        maxlength="200"
+        value="{{ maestro.contacto_emergencia or '' if maestro else '' }}"
+        autocomplete="off"
+      >
+    </label>
+
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Foto</span>
+        <input
+          class="form-field__input"
+          name="foto"
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+        >
+        <small class="form-field__hint">
+          JPG, PNG o WebP. Máximo 5 MB.
+        </small>
+      </label>
+
+      <div class="photo-field">
+        <span class="form-field__label">Foto actual</span>
+        {% if maestro and maestro.foto_ruta %}
+          <div class="photo-field__preview">
+            <img src="/maestros/{{ maestro.id }}/foto" alt="Foto de {{ maestro.nombre }}">
+          </div>
+          <label class="photo-field__remove">
+            <input type="checkbox" name="quitar_foto" value="1">
+            <span>Quitar foto actual</span>
+          </label>
+        {% else %}
+          <div class="photo-field__empty">Sin foto registrada</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="button button--primary" type="submit">
+        {{ 'Guardar cambios' if maestro else 'Crear maestro' }}
+      </button>
+      <a class="button button--ghost" href="{{ '/maestros/' ~ maestro.id if maestro else '/maestros' }}">
+        Cancelar
+      </a>
+    </div>
+  </form>
+</section>
+{% endblock %}

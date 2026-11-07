@@ -73,19 +73,19 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## FASE 4 — Grupos, sesiones y pago a maestros
 
-- [ ] **Tarea 4.1** — CRUD de sucursales y grupos con bloques múltiples (materia, orden, duración, maestro, precio).
+- [x] **Tarea 4.1** — CRUD de sucursales y grupos con bloques múltiples (materia, orden, duración, maestro, precio).
   - Entregable: grupo de 1 h Robótica + 1 h Inglés creado desde la interfaz.
-- [ ] **Tarea 4.2** — Generación automática de sesiones desde el horario del grupo.
+- [x] **Tarea 4.2** — Generación automática de sesiones desde el horario del grupo.
   - Entregable: sesiones programadas visibles y editables según reglas.
-- [ ] **Tarea 4.3** — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra.
+- [x] **Tarea 4.3** — Cancelación de sesión sin generar faltas, cobros ni honorarios, y creación de sesión extra.
   - Entregable: sesión cancelada y sesión extra funcionando.
-- [ ] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
+- [x] **Tarea 4.4** — Sustitución de docente titular por suplente en una sesión específica.
   - Entregable: dos marcas de pago independientes por sesión.
-- [ ] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
+- [x] **Tarea 4.5** — Pantalla de pago a maestros: marcar pagado/pendiente individual o en lote, sin calcular sueldos.
   - Entregable: corte de honorarios por sesión.
-- [ ] **Tarea 4.6** — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa.
+- [x] **Tarea 4.6** — CRUD de alumnos y maestros con foto local, baja con historial y ficha completa.
   - Entregable: datos personales y fotos gestionados sin inflar la base.
-- [ ] **Tarea 4.7** — Consulta de asistencia por grupo y fechas.
+- [x] **Tarea 4.7** — Consulta de asistencia por grupo y fechas.
   - Entregable: historial de asistencia exportable/consultable.
 
 **Criterio de aceptación Fase 4:** sesión con maestro suplente liquidada y reflejada en el corte semanal; sesión cancelada sin efectos financieros.
@@ -94,16 +94,21 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 ## FASE 5 — Empaquetado y puesta en marcha (Windows)
 
-- [ ] **Tarea 5.1** — Crear `run_app.bat` que inicie Uvicorn y abra Chrome en modo app/kiosko; sin ventanas de terminal.
+- [~] **Tarea 5.1** — Crear `run_app.bat` que inicie Uvicorn y abra Chrome en modo app/kiosko; sin ventanas de terminal.
   - Entregable: doble clic y sistema listo.
+  - Avance: launcher, VBS, scripts de arranque/parada y pruebas locales listos; falta validar el doble clic en Windows.
 - [ ] **Tarea 5.2** — Configurar impresión silenciosa y validar un ticket real en la impresora térmica del dueño.
   - Entregable: 3 tickets consecutivos impresos sin diálogo.
-- [ ] **Tarea 5.3** — Empaquetar con PyInstaller o carpeta portable con Python incluido; probar antivirus.
+  - Bloqueo: falta la impresora térmica y confirmar el ancho real (58/80 mm).
+- [~] **Tarea 5.3** — Empaquetar con PyInstaller o carpeta portable con Python incluido; probar antivirus.
   - Entregable: paquete que corre en una laptop limpia con Windows.
-- [ ] **Tarea 5.4** — Probar restauración de base de datos desde USB en una carpeta limpia.
+  - Avance: `packaging/icia.spec`, `packaging/build_windows.bat` y `requirements-build.txt` listos; falta compilar y probar antivirus en Windows.
+- [~] **Tarea 5.4** — Probar restauración de base de datos desde USB en una carpeta limpia.
   - Entregable: datos, fotos y folios restaurados correctamente.
+  - Avance: respaldo ZIP con base, fotos y manifiesto; restauración validada, respaldo de seguridad y aplicación al reiniciar; faltan pruebas en carpeta limpia Windows.
 - [ ] **Tarea 5.5** — Ejecutar el caso base completo: El Refugio, 35 alumnos, $4,900, sin internet.
   - Entregable: acta de prueba con totales y tickets.
+  - Avance: caso base automatizado de 35 alumnos y $4,900 aprobado; acta preparada en `docs/ACTA_PRUEBA_FASE5.md`; falta validación física.
 
 **Criterio de aceptación Fase 5:** el dueño hace doble clic en el escritorio, el sistema arranca sin terminal, imprime sin diálogo y restaura desde USB en otra laptop.
 
@@ -115,7 +120,9 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **165 passed**.
-- Siguiente tarea recomendada: **Tarea 4.1 — CRUD de sucursales y grupos con bloques múltiples**.
+- Suite de pruebas: **246 passed**.
+- Fase 4 completada: **Tareas 4.1 a 4.7 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra, sustitución de docentes con marcas independientes, corte de honorarios con marcado individual o en lote, CRUD de alumnos/maestros con fotos locales, baja con historial, ficha completa y consulta de asistencia por grupo y fechas con exportación CSV).
+- Fase 5 en preparación: **5.1, 5.3 y 5.4 con avance local**; **5.2 y 5.5 bloqueadas** por falta de laptop Windows e impresora térmica.
+- Siguiente acción recomendada: validar el paquete y la restauración en la laptop Windows del dueño.
 - Ancho de rollo configurable implementado (58/80 mm); falta confirmar el valor real y el modelo de impresora.
 - Pendientes de confirmación con el dueño: prefijos de folio definitivos, precios de grupos y estrategia de captura inicial de alumnos.

@@ -1,0 +1,244 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}{{ 'Editar' if detalle else 'Nuevo' }} grupo · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Académico</p>
+    <h1>{{ 'Editar grupo' if detalle else 'Nuevo grupo' }}</h1>
+    <p class="page-head__meta">
+      {% if detalle %}
+        {{ detalle.grupo.nombre }} · {{ detalle.grupo.dias_semana|replace(',', ' · ') }} · {{ detalle.grupo.hora_inicio }}–{{ detalle.grupo.hora_fin }}
+      {% else %}
+        Define el horario, el precio por sesión y los bloques de materia
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-head__actions">
+    <a class="button button--ghost" href="/grupos">Volver a grupos</a>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+
+{% if not maestros %}
+  <div class="notice notice--danger" role="alert">
+    No hay maestros activos. Registra maestros antes de crear un grupo.
+  </div>
+{% endif %}
+
+{% set grupo = detalle.grupo if detalle else None %}
+{% set bloques = detalle.bloques if detalle else [] %}
+{% set dias_seleccionados = (grupo.dias_semana.split(',') if grupo else []) %}
+
+<section class="panel form-panel" aria-labelledby="grupo-form-title">
+  <div class="section-head">
+    <h2 id="grupo-form-title">Datos del grupo</h2>
+    <span class="section-head__hint">La duración de los bloques debe coincidir con el horario</span>
+  </div>
+
+  <form
+    class="form-grid"
+    id="group-form"
+    method="post"
+    action="{{ '/grupos/' ~ grupo.id if grupo else '/grupos' }}"
+  >
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Sucursal</span>
+        <select class="form-field__input" name="sucursal_id" required>
+          <option value="" disabled {% if not grupo %}selected{% endif %}>Selecciona…</option>
+          {% for item in sucursales %}
+            {% if item.activa or (grupo and item.id == grupo.sucursal_id) %}
+              <option
+                value="{{ item.id }}"
+                {% if grupo and item.id == grupo.sucursal_id %}selected{% endif %}
+              >{{ item.nombre }}{{ '' if item.activa else ' (inactiva)' }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Nombre</span>
+        <input
+          class="form-field__input"
+          name="nombre"
+          type="text"
+          maxlength="120"
+          value="{{ grupo.nombre if grupo else '' }}"
+          placeholder="Jueves 3-5 PM"
+          autocomplete="off"
+          required
+        >
+      </label>
+    </div>
+
+    <fieldset class="form-fieldset">
+      <legend class="form-field__label">Días de la semana</legend>
+      <div class="day-grid">
+        {% for dia in dias_semana %}
+          <label class="day-check">
+            <input
+              type="checkbox"
+              name="dias_semana"
+              value="{{ dia }}"
+              {% if dia in dias_seleccionados %}checked{% endif %}
+            >
+            <span>{{ dia }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="form-grid__row form-grid__row--3">
+      <label class="form-field">
+        <span class="form-field__label">Hora de inicio</span>
+        <input
+          class="form-field__input"
+          id="hora-inicio"
+          name="hora_inicio"
+          type="time"
+          value="{{ grupo.hora_inicio if grupo else '' }}"
+          required
+        >
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Hora de fin</span>
+        <input
+          class="form-field__input"
+          id="hora-fin"
+          name="hora_fin"
+          type="time"
+          value="{{ grupo.hora_fin if grupo else '' }}"
+          required
+        >
+      </label>
+
+      <label class="form-field">
+        <span class="form-field__label">Precio por sesión (MXN)</span>
+        <input
+          class="form-field__input"
+          name="precio"
+          type="text"
+          maxlength="20"
+          inputmode="decimal"
+          placeholder="140.00"
+          value="{{ grupo.precio_centavos|pesos if grupo else '' }}"
+          autocomplete="off"
+          required
+        >
+      </label>
+    </div>
+
+    <fieldset class="form-fieldset" id="blocks-fieldset">
+      <legend class="form-field__label">Bloques de materia</legend>
+      <div class="block-list" id="block-list">
+        {% for bloque in bloques %}
+          <div class="block-row">
+            <span class="block-row__orden tabular">{{ loop.index }}</span>
+            <label class="form-field">
+              <span class="form-field__label">Materia</span>
+              <select class="form-field__input" name="bloque_materia" required>
+                {% for valor, etiqueta in materias.items() %}
+                  <option value="{{ valor }}" {% if bloque.materia == valor %}selected{% endif %}>
+                    {{ etiqueta }}
+                  </option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-field__label">Duración (min)</span>
+              <input
+                class="form-field__input"
+                name="bloque_duracion"
+                type="number"
+                min="1"
+                max="600"
+                step="1"
+                value="{{ bloque.duracion_minutos }}"
+                required
+              >
+            </label>
+            <label class="form-field">
+              <span class="form-field__label">Maestro</span>
+              <select class="form-field__input" name="bloque_maestro" required>
+                {% for maestro in maestros %}
+                  <option value="{{ maestro.id }}" {% if bloque.maestro_id == maestro.id %}selected{% endif %}>
+                    {{ maestro.nombre }}{% if not maestro.activo %} (inactivo){% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </label>
+            <button class="button button--ghost button--sm block-row__remove" type="button">
+              Quitar
+            </button>
+          </div>
+        {% endfor %}
+      </div>
+
+      <template id="block-template">
+        <div class="block-row">
+          <span class="block-row__orden tabular"></span>
+          <label class="form-field">
+            <span class="form-field__label">Materia</span>
+            <select class="form-field__input" name="bloque_materia" required>
+              {% for valor, etiqueta in materias.items() %}
+                <option value="{{ valor }}">{{ etiqueta }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">Duración (min)</span>
+            <input
+              class="form-field__input"
+              name="bloque_duracion"
+              type="number"
+              min="1"
+              max="600"
+              step="1"
+              value="60"
+              required
+            >
+          </label>
+          <label class="form-field">
+            <span class="form-field__label">Maestro</span>
+            <select class="form-field__input" name="bloque_maestro" required>
+              {% for maestro in maestros %}
+                <option value="{{ maestro.id }}">
+                  {{ maestro.nombre }}{% if not maestro.activo %} (inactivo){% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="button button--ghost button--sm block-row__remove" type="button">
+            Quitar
+          </button>
+        </div>
+      </template>
+
+      <div class="block-actions">
+        <button class="button button--ghost" id="add-block" type="button">
+          Agregar bloque
+        </button>
+        <p class="block-summary" id="block-summary" aria-live="polite"></p>
+      </div>
+    </fieldset>
+
+    <div class="form-actions">
+      <button class="button button--primary" type="submit" {% if not maestros %}disabled{% endif %}>
+        {{ 'Guardar cambios' if grupo else 'Crear grupo' }}
+      </button>
+      <a class="button button--ghost" href="/grupos">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{{ url_for('static', path='js/groups.js') }}" defer></script>
+{% endblock %}
