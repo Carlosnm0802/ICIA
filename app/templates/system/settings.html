@@ -1,0 +1,153 @@
+{% extends "layouts/base.html" %}
+
+{% block title %}Configuración · {{ app_name }}{% endblock %}
+
+{% block content %}
+<header class="page-head">
+  <div>
+    <p class="eyebrow">Sistema · Configuración</p>
+    <h1>Configuración</h1>
+    <p class="page-head__meta">
+      Impresión térmica, respaldos y restauración local
+    </p>
+  </div>
+</header>
+
+{% if error %}
+  <div class="notice notice--danger" role="alert">{{ error }}</div>
+{% endif %}
+{% if guardado %}
+  <div class="notice notice--success" role="status">Configuración guardada.</div>
+{% endif %}
+{% if respaldo %}
+  <div class="notice notice--success" role="status">
+    Respaldo creado: {{ respaldo }}
+  </div>
+{% endif %}
+{% if restauracion %}
+  <div class="notice notice--success" role="status">
+    Respaldo listo para restaurar. Cierra ICIA con <code>detener_icia.bat</code>
+    y vuelve a abrirlo para aplicar el cambio.
+  </div>
+{% endif %}
+{% if pendiente %}
+  <div class="notice" role="status">
+    Hay una restauración pendiente preparada: {{ pendiente.name }}.
+  </div>
+{% endif %}
+
+<section class="panel form-panel" aria-labelledby="impresion-title">
+  <div class="section-head">
+    <h2 id="impresion-title">Impresión térmica</h2>
+    <span class="section-head__hint">Formato continuo angosto</span>
+  </div>
+  <form class="form-grid" method="post" action="/configuracion/impresion">
+    <div class="form-grid__row form-grid__row--2">
+      <label class="form-field">
+        <span class="form-field__label">Ancho del ticket</span>
+        <select class="form-field__input" name="ancho_mm">
+          <option value="58" {% if ancho_mm == 58 %}selected{% endif %}>58 mm</option>
+          <option value="80" {% if ancho_mm == 80 %}selected{% endif %}>80 mm</option>
+        </select>
+      </label>
+      <div class="form-field">
+        <span class="form-field__label">Ticket de prueba</span>
+        <a class="button button--ghost" href="/configuracion/ticket-prueba" target="_blank" rel="noopener">
+          Imprimir ticket de prueba
+        </a>
+      </div>
+    </div>
+    <p class="page-head__meta">
+      El ticket de prueba se abre en otra pestaña y usa el ancho guardado.
+      Para que no aparezca el diálogo de impresión, abre ICIA con el acceso directo.
+    </p>
+    <div>
+      <button class="button button--primary" type="submit">Guardar ancho</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel form-panel" aria-labelledby="respaldo-title">
+  <div class="section-head">
+    <h2 id="respaldo-title">Respaldo</h2>
+    <span class="section-head__hint">Base de datos y fotos en un ZIP</span>
+  </div>
+
+  <dl class="settings-info">
+    <div>
+      <dt>Último respaldo</dt>
+      <dd>
+        {% if ultimo_respaldo %}
+          {{ ultimo_respaldo.strftime('%d/%m/%Y %H:%M') }}
+        {% else %}
+          Sin respaldos todavía
+        {% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt>Carpeta actual</dt>
+      <dd>{{ ruta_respaldo }}</dd>
+    </div>
+  </dl>
+
+  {% if recordatorio %}
+    <div class="notice notice--danger" role="status">{{ recordatorio }}</div>
+  {% endif %}
+
+  <form class="form-grid" method="post" action="/configuracion/respaldo/ruta">
+    <label class="form-field">
+      <span class="form-field__label">Carpeta de respaldos</span>
+      <input
+        class="form-field__input"
+        type="text"
+        name="ruta_respaldo"
+        value="{{ ruta_respaldo }}"
+        placeholder="C:\ICIA\data\backups o D:\RespaldoICIA"
+      >
+    </label>
+    <p class="page-head__meta">
+      Puedes usar una carpeta de la USB. Si no existe, se creará al respaldar.
+    </p>
+    <div>
+      <button class="button button--ghost" type="submit">Guardar carpeta</button>
+    </div>
+  </form>
+
+  <form method="post" action="/configuracion/respaldo">
+    <button class="button button--primary" type="submit">Respaldar ahora</button>
+  </form>
+</section>
+
+<section class="panel form-panel" aria-labelledby="restaurar-title">
+  <div class="section-head">
+    <h2 id="restaurar-title">Restaurar respaldo</h2>
+    <span class="section-head__hint">Reemplaza los datos actuales</span>
+  </div>
+
+  <div class="notice notice--danger" role="alert">
+    Restaurar reemplaza la base de datos y las fotos actuales. Antes de aplicar,
+    ICIA crea un respaldo de seguridad automático.
+  </div>
+
+  <form
+    class="form-grid"
+    method="post"
+    action="/configuracion/restaurar"
+    enctype="multipart/form-data"
+  >
+    <label class="form-field">
+      <span class="form-field__label">Archivo de respaldo (.zip)</span>
+      <input class="form-field__input" type="file" name="archivo" accept=".zip" required>
+    </label>
+    <div>
+      <button class="button button--primary" type="submit">Preparar restauración</button>
+    </div>
+  </form>
+
+  <p class="page-head__meta">
+    Al preparar la restauración no se cambian los datos de inmediato. Cierra ICIA
+    con <code>detener_icia.bat</code> y vuelve a abrirlo; la restauración se aplica
+    al iniciar.
+  </p>
+</section>
+{% endblock %}

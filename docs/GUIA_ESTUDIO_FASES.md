@@ -2,7 +2,7 @@
 
 Este documento explica el proyecto **ICIA** como si estuvieras aprendiendo a programarlo desde cero. La idea es que puedas leerlo por fases, entender qué problema resolvimos, qué piezas construimos y qué conceptos conviene dominar antes de avanzar.
 
-> Estado actual: **Fases 1, 2 y 3 completadas**. La siguiente fase es la **Fase 4: grupos, sesiones, maestros y pago a maestros**. La suite actual tiene **165 pruebas automatizadas**.
+> Estado actual: **Fases 1, 2, 3 y 4 completadas**. La **Fase 5** está en preparación local, pendiente de validación en la laptop Windows y la impresora térmica del dueño. La suite actual tiene **246 pruebas automatizadas**.
 
 ---
 
@@ -50,8 +50,8 @@ La aplicación es un **monolito local**:
 | Fase 1 | Base técnica, base de datos, datos semilla y respaldo USB | Completada |
 | Fase 2 | Cobro Express, tickets, deudas, anulación, login y descarga de tickets | Completada |
 | Fase 3 | Dashboard, deudas y reposiciones | Completada |
-| Fase 4 | Grupos, sesiones, maestros y pago a maestros | Siguiente |
-| Fase 5 | Empaquetado, impresión real y puesta en marcha en Windows | Planeada |
+| Fase 4 | Grupos, sesiones, maestros, alumnos, pago a maestros y asistencia | Completada |
+| Fase 5 | Empaquetado, impresión real y puesta en marcha en Windows | En preparación |
 
 ---
 
