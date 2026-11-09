@@ -259,6 +259,8 @@ ICIA/
 - `DESIGN.md` — tokens y componentes visuales.
 - `ROADMAP_TASKS.md` — avance por fases y tareas pendientes.
 - `docs/ACTA_PRUEBA_FASE5.md` — preparación y checklist de puesta en marcha.
+- `CHANGELOG.md` — historial de versiones y cambios.
+- `LICENSE` — aviso de uso privado y propietario.
 
 ---
 
@@ -272,3 +274,10 @@ ICIA/
 - No calcula sueldos; solo marca pagos por sesión.
 - No hay importación masiva desde Excel.
 - Datos de menores: mantener la laptop y los respaldos protegidos.
+
+---
+
+## Licencia
+
+Software propietario de uso privado. Consulta `LICENSE`. No es software de
+código abierto.
