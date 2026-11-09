@@ -16,6 +16,13 @@ hiddenimports = [
     "python_multipart",
     "sqlalchemy.dialects.sqlite",
     "sqlalchemy.dialects.sqlite.pysqlite",
+    "bcrypt",
+    "mako",
+    "mako.template",
+    "mako.runtime",
+    "jinja2.ext",
+    "email.mime.multipart",
+    "email.mime.text",
 ]
 hiddenimports += collect_submodules("app")
 hiddenimports += collect_submodules("uvicorn")

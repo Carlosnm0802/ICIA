@@ -96,13 +96,13 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 
 - [~] **Tarea 5.1** — Crear `run_app.bat` que inicie Uvicorn y abra Chrome en modo app/kiosko; sin ventanas de terminal.
   - Entregable: doble clic y sistema listo.
-  - Avance: launcher, VBS, scripts de arranque/parada y pruebas locales listos; falta validar el doble clic en Windows.
+  - Avance: launcher, VBS, scripts de arranque/parada, parada ordenada y creador de acceso directo `ICIA.lnk` listos; falta validar el doble clic en Windows.
 - [ ] **Tarea 5.2** — Configurar impresión silenciosa y validar un ticket real en la impresora térmica del dueño.
   - Entregable: 3 tickets consecutivos impresos sin diálogo.
   - Bloqueo: falta la impresora térmica y confirmar el ancho real (58/80 mm).
 - [~] **Tarea 5.3** — Empaquetar con PyInstaller o carpeta portable con Python incluido; probar antivirus.
   - Entregable: paquete que corre en una laptop limpia con Windows.
-  - Avance: `packaging/icia.spec`, `packaging/build_windows.bat` y `requirements-build.txt` listos; falta compilar y probar antivirus en Windows.
+  - Avance: `packaging/icia.spec`, `packaging/build_windows.bat` y `requirements-build.txt` listos; scripts en CRLF, hidden imports ampliados y pruebas de empaquetado; falta compilar y probar antivirus en Windows.
 - [~] **Tarea 5.4** — Probar restauración de base de datos desde USB en una carpeta limpia.
   - Entregable: datos, fotos y folios restaurados correctamente.
   - Avance: respaldo ZIP con base, fotos y manifiesto; restauración validada, respaldo de seguridad y aplicación al reiniciar; faltan pruebas en carpeta limpia Windows.
@@ -120,7 +120,7 @@ Leyenda: `[ ]` pendiente · `[x]` completada · `[~]` en curso
 - Fase 2 completada: **Tareas 2.1 a 2.10 completadas**.
 - Fase 3 completada: **Tareas 3.1 a 3.5 completadas** (dashboard con KPI, gráfica local por sucursal, módulo de deudas con cobro rápido, reposiciones sin cobro nuevo y pruebas de consistencia de Fase 3).
 - Chart.js 4.6.1 vendorizado en `app/static/vendor/chart.js/`; sin CDN en runtime.
-- Suite de pruebas: **246 passed**.
+- Suite de pruebas: **264 passed**.
 - Fase 4 completada: **Tareas 4.1 a 4.7 completadas** (CRUD de sucursales/grupos, generación automática de sesiones, cancelación/reactivación con sesiones extra, sustitución de docentes con marcas independientes, corte de honorarios con marcado individual o en lote, CRUD de alumnos/maestros con fotos locales, baja con historial, ficha completa y consulta de asistencia por grupo y fechas con exportación CSV).
 - Fase 5 en preparación: **5.1, 5.3 y 5.4 con avance local**; **5.2 y 5.5 bloqueadas** por falta de laptop Windows e impresora térmica.
 - Siguiente acción recomendada: validar el paquete y la restauración en la laptop Windows del dueño.

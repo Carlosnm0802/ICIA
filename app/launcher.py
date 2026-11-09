@@ -25,6 +25,7 @@ from app.core.config import (
 LOG_DIR = DATA_DIR / "logs"
 LOG_PATH = LOG_DIR / "icia.log"
 PID_PATH = DATA_DIR / "icia.pid"
+STOP_PATH = DATA_DIR / "icia.stop"
 BROWSER_PROFILE_DIR = DATA_DIR / "browser-profile"
 APP_URL = f"http://{HOST}:{PORT}/"
 HEALTH_URL = urljoin(APP_URL, "health")
@@ -128,6 +129,15 @@ def _abrir_cuando_este_listo(limite_segundos: float = 20.0) -> None:
     logging.error("El servidor no respondió antes de abrir el navegador.")
 
 
+def _vigilar_parada(server: object, intervalo: float = 0.5) -> None:
+    while not getattr(server, "should_exit", False):
+        if STOP_PATH.exists():
+            STOP_PATH.unlink(missing_ok=True)
+            server.should_exit = True
+            return
+        time.sleep(intervalo)
+
+
 def _escribir_pid() -> None:
     PID_PATH.write_text(str(os.getpid()), encoding="utf-8")
 
@@ -161,6 +171,7 @@ def _mostrar_error(mensaje: str) -> None:
 def ejecutar() -> int:
     ensure_directories()
     _configurar_log()
+    STOP_PATH.unlink(missing_ok=True)
 
     if servidor_activo():
         abrir_navegador()
@@ -201,11 +212,18 @@ def ejecutar() -> int:
             access_log=False,
         )
         server = uvicorn.Server(config)
+        hilo_parada = threading.Thread(
+            target=_vigilar_parada,
+            args=(server,),
+            daemon=True,
+        )
+        hilo_parada.start()
         server.run()
     except Exception as exc:
         _mostrar_error(f"{APP_NAME} no pudo iniciar. Revisa {LOG_PATH}. {exc}")
         return 1
     finally:
+        STOP_PATH.unlink(missing_ok=True)
         _limpiar_pid()
 
     return 0
