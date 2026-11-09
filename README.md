@@ -253,6 +253,7 @@ ICIA/
 
 ## Documentación
 
+- `docs/MANUAL_USUARIO.md` — manual de uso para el dueño.
 - `PRD.md` — requisitos de producto y reglas de negocio.
 - `ARCHITECTURE.md` — arquitectura, base de datos y flujos.
 - `DESIGN.md` — tokens y componentes visuales.
